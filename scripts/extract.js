@@ -388,4 +388,14 @@ function report(units, failures, payload) {
   if (payload.meta.isDemo) console.log('note:      demo build — balance values are not final');
 }
 
-main();
+// This is the one script that needs a local game install, so when it can't find
+// one, say so plainly instead of dumping a stack trace at whoever ran it.
+try {
+  main();
+} catch (err) {
+  console.error(`\nExtraction failed: ${err.message}\n`);
+  console.error('This script reads the installed game and only runs locally —');
+  console.error('production serves the committed public/ directory as-is.');
+  console.error('To check the committed data instead, run: npm run verify\n');
+  process.exit(1);
+}

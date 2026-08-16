@@ -1,0 +1,5 @@
+# Only public/ is served. Everything below is local tooling that reads the game
+# install, or source material for it — none of it exists or runs in production.
+scripts/
+icons-src/
+README.md

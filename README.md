@@ -8,10 +8,13 @@ No dependencies, no build step. `public/` is a plain static site.
 ## Quick start
 
 ```bash
-npm run extract   # read the game files -> public/data/units.json
-npm run icons     # icons-src/ -> public/icons/<faction>/  (no game install needed)
+npm run refresh   # extract + icons: regenerate everything from a local game install
 npm run dev       # serve public/ at http://localhost:5173
+npm run verify    # check public/ is complete and deployable (no game needed)
 ```
+
+`refresh` is `npm run extract` (game data → `public/data/units.json`) followed by
+`npm run icons` (`icons-src/` → `public/icons/`, plus both manifests).
 
 `extract` finds the game automatically by reading Steam's `libraryfolders.vdf`.
 If it can't (non-standard install, or you copied the files elsewhere), point it
@@ -267,16 +270,33 @@ hundred MB of hosting. One model is an afternoon; 283 is a separate project.
 
 ## Deploying
 
-`vercel.json` serves `public/` as a static site with no build step:
+**The scripts are local-only. Production never runs them** — it can't, because
+there's no game install on a build server. `public/` is committed complete and
+served as-is:
 
 ```bash
 vercel deploy
 ```
 
-Note that `npm run extract` needs a local game install, so `public/data/units.json`
-is committed rather than generated at deploy time. Automating that would mean
-running the extractor somewhere with the game files present and pushing the JSON —
-worth doing later, not needed to ship.
+Three things keep it that way, and they're deliberate:
+
+1. **There is no `build` script in `package.json`.** Vercel auto-detects and runs
+   `npm run build` whenever one exists, so a `build` that called `extract` would
+   fail every deploy on a missing game install. The composite is named `refresh`
+   instead. Don't add a `build` script.
+2. **`vercel.json` sets an explicit no-op `buildCommand`** rather than `null`.
+   `null` means "fall back to auto-detection", which is the behaviour we're
+   avoiding.
+3. **`.vercelignore` excludes `scripts/` and `icons-src/`.** Neither is reachable
+   from the served site, and it keeps the upload to just the 1.9 MB of `public/`.
+
+The workflow after a game patch is: `npm run refresh` locally, `npm run verify`,
+then commit the regenerated `public/` and push. `verify` reads only `public/`, so
+it also works as a CI check on a machine that has never seen the game.
+
+If you ever want this automated, the extractor has to run somewhere the game
+files exist — a self-hosted runner or your own machine on a schedule — pushing
+the regenerated JSON. It cannot run on Vercel.
 
 ## Layout
 
