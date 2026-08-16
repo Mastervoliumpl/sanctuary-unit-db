@@ -57,10 +57,37 @@ function steamLibraries() {
 
 // The templates live under the `prototype` build; the `engine` and `map-editor`
 // builds ship their own copies but the prototype one is what the game runs.
+// The install ships two complete Lua trees with different balance data, and 89
+// of 283 units disagree between them:
+//
+//   engine/LJ/lua              newer (Aug 12 vs Jul 22), 283-entry availability
+//                              list with structured notes. Ships no art at all.
+//   prototype/RuntimeContent   older data, but holds every unit model, the
+//                              strategic icons and the baked map scenes.
+//
+// Unit data comes from `engine`; art is taken from `prototype`, the only place
+// it exists. Set SANCTUARY_TREE=prototype to read the older data instead.
+const TREES = {
+  engine: path.join('engine', 'LJ', 'lua'),
+  prototype: path.join('prototype', 'RuntimeContent', 'Lua'),
+};
+
 export function contentRoot(gameDir) {
-  const root = path.join(gameDir, 'prototype', 'RuntimeContent', 'Lua');
-  if (!fs.existsSync(root)) {
-    throw new Error(`Expected Lua content at ${root} but it is missing`);
+  const requested = process.env.SANCTUARY_TREE;
+  if (requested && !TREES[requested]) {
+    throw new Error(`SANCTUARY_TREE must be one of: ${Object.keys(TREES).join(', ')}`);
   }
-  return root;
+
+  const order = requested ? [requested] : ['engine', 'prototype'];
+  for (const tree of order) {
+    const root = path.join(gameDir, TREES[tree]);
+    if (fs.existsSync(path.join(root, 'common', 'units', 'unitsTemplates'))) {
+      return { root, tree };
+    }
+  }
+
+  throw new Error(
+    `No unit templates found under ${gameDir}. Looked in:\n` +
+      order.map((t) => `  ${path.join(gameDir, TREES[t])}`).join('\n')
+  );
 }

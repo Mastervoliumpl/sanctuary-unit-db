@@ -26,8 +26,23 @@ SANCTUARY_PATH="D:/SteamLibrary/steamapps/common/Sanctuary Shattered Sun Demo" n
 
 ## Where the data comes from
 
-The game ships its unit balance as plain-text Lua under
-`prototype/RuntimeContent/Lua/common/units/`:
+**The install ships two complete Lua trees, and they disagree.** This caught me
+out, so read this before changing any path:
+
+| | `engine/LJ/lua` | `prototype/RuntimeContent/Lua` |
+|---|---|---|
+| Balance data | **newer** (Aug 12) | older (Jul 22, untouched since install) |
+| `availableUnits.lua` | 283 entries, `OK` / `NO_MODEL` / `OK_PENDING_APPROVAL` | 270 entries, freeform notes |
+| `canBuild` grammar | AND, **OR and parentheses** | AND only |
+| Maps | 93 | 0 (baked into `level0–10` scenes) |
+| Unit models / icons | **none** | all of them |
+
+89 of 283 units differ on cost, health or build time — the Tempest is 3000 HP in
+one and 6000 in the other. The extractor reads **`engine`** for unit data and
+takes art from **`prototype`**, which is the only place art exists. Set
+`SANCTUARY_TREE=prototype` to read the older data for comparison.
+
+Under whichever tree, the files used are:
 
 | Path | What it gives us |
 |---|---|
@@ -85,7 +100,7 @@ Weapons with no reload time report 0 DPS rather than infinity.
   maintained by hand.
 - The loader reads `local useAvailableUnitsList = false`, so **the game ignores
   it entirely** and loads every template.
-- It's wrong about 90 units. It marks the Chosen T1 Raider (`ucl1002`) as
+- It's wrong about 86 units. It marks the Chosen T1 Raider (`ucl1002`) as
   "no model" when the model plainly exists, and marks `ugl2002` unavailable
   while its own trailing comment reads "model exist".
 
@@ -187,12 +202,24 @@ detail panel list every weapon separately, so nothing is hidden behind that pick
 `category = "DeathExplosion"`. They only trigger on death, so they're pulled out
 into a separate `deathExplosion` field and excluded from DPS and range.
 
-**Build tree.** `construction.canBuild` is a tag expression such as
-`"Tags.EDA * Tags.BUILDABLE_BY_T1_FACTORY * Tags.LAND"`, where `*` means AND.
-Each builder is matched against every unit's tags to produce `builds`, which is
-then inverted to give each unit its `builtBy`. A token that matches a template id
-instead of a tag (e.g. `"Tags.ugs3805"`) names one specific unit — that's how
-in-place structure upgrades are expressed, and `upgradesTo` is folded in too.
+**Build tree.** `construction.canBuild` is a boolean tag expression. `*` is AND,
+`+` is OR, and parentheses group:
+
+```
+Tags.EDA * Tags.BUILDABLE_BY_T1_FACTORY * ((Tags.LAND * Tags.MOBILE) + Tags.LAND_FACTORY)
+```
+
+A land factory builds EDA land units *or* another land factory — that second
+branch is the upgrade chain. 27 of the 69 expressions use the OR form, and they
+only appear in the `engine` tree; `prototype` uses AND alone. Splitting on `*`
+parses them into nonsense and costs ~90 units their builders, so this is a real
+recursive-descent parser (`compileTagExpression`), and an expression that fails
+to parse is reported rather than silently yielding an empty build list.
+
+An atom naming a template id rather than a tag (`"Tags.ugs3805"`) matches that
+one unit — that's how in-place structure upgrades are written. Each builder is
+evaluated against every unit to produce `builds`, which is inverted to give each
+unit its `builtBy`, and `upgradesTo` is folded in too.
 
 Build time is stored in build-power-seconds, so wall-clock time depends on the
 builder: `buildTime / builder.buildPower`. The detail panel shows this per builder

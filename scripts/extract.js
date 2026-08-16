@@ -43,8 +43,9 @@ const ROLES = {
 
 function main() {
   const gameDir = locateGame();
-  const lua = contentRoot(gameDir);
+  const { root: lua, tree } = contentRoot(gameDir);
   console.log(`game:      ${gameDir}`);
+  console.log(`tree:      ${tree}  (unit data; art always comes from prototype)`);
 
   const available = readAvailability(path.join(lua, 'common', 'units', 'availableUnits.lua'));
   const models = scanUnitModels(gameDir);
@@ -107,23 +108,35 @@ function main() {
 // (useAvailableUnitsList = false), and wrong about 90 units — it claims
 // "no model" for things like the Chosen T1 Raider that are plainly modelled.
 function scanUnitModels(gameDir) {
-  const dataDir = path.join(gameDir, 'prototype', 'Sanctuary Shattered Sun_Data');
   const pattern = /u[ecgw][lans]\d{4}(?=_lod\d)/g;
   const found = new Set();
 
-  if (!fs.existsSync(dataDir)) return found;
+  // Only the prototype build ships unit art — the engine build's asset files
+  // contain no unit LODs and no strategic icons at all — but scan every build's
+  // data directory so this keeps working if that changes.
+  const dataDirs = fs
+    .readdirSync(gameDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .flatMap((e) => {
+      const buildDir = path.join(gameDir, e.name);
+      return fs
+        .readdirSync(buildDir, { withFileTypes: true })
+        .filter((d) => d.isDirectory() && /_Data$/.test(d.name))
+        .map((d) => path.join(buildDir, d.name));
+    });
 
-  // Scenes share assets, so any of them carries the full roster; read them all
-  // in case a unit only appears in one. Each is read and released in turn
-  // rather than held together — they run to ~100 MB apiece.
-  for (const file of fs.readdirSync(dataDir).filter((f) => /^level\d+$/.test(f))) {
-    let text;
-    try {
-      text = fs.readFileSync(path.join(dataDir, file)).toString('latin1');
-    } catch {
-      continue;
+  for (const dir of dataDirs) {
+    // Scenes share assets, so read them all in case a unit appears in only one.
+    // Each is read and released in turn — they run to ~100 MB apiece.
+    for (const file of fs.readdirSync(dir).filter((f) => /^level\d+$/.test(f))) {
+      let text;
+      try {
+        text = fs.readFileSync(path.join(dir, file)).toString('latin1');
+      } catch {
+        continue;
+      }
+      for (const match of text.matchAll(pattern)) found.add(match[0]);
     }
-    for (const match of text.matchAll(pattern)) found.add(match[0]);
   }
   return found;
 }
@@ -349,9 +362,61 @@ function toWeapon(w) {
   };
 }
 
-// canBuild is a tag expression: "Tags.EDA * Tags.BUILDABLE_BY_T1_FACTORY * Tags.LAND",
-// where `*` means AND. A token that matches a template id instead names one
-// specific unit — that's how in-place structure upgrades are expressed.
+// canBuild is a boolean tag expression. `*` is AND, `+` is OR, and parentheses
+// group:
+//
+//   Tags.EDA * Tags.BUILDABLE_BY_T1_FACTORY * ((Tags.LAND * Tags.MOBILE) + Tags.LAND_FACTORY)
+//
+// i.e. a land factory builds EDA land units, or another land factory — that's
+// the upgrade chain. An atom that names a template id rather than a tag matches
+// that one unit, which is how in-place structure upgrades are written
+// ("Tags.ugs2806"). 27 of the 69 expressions use the OR/parenthesis form; a
+// naive split on `*` silently drops them, costing ~90 units their builders.
+function compileTagExpression(src) {
+  const tokens = src.match(/Tags\.[A-Za-z0-9_]+|[*+()]/g) ?? [];
+  let pos = 0;
+
+  // orExpr := andExpr ('+' andExpr)*
+  const orExpr = () => {
+    let node = andExpr();
+    while (tokens[pos] === '+') {
+      pos++;
+      const [lhs, rhs] = [node, andExpr()];
+      node = (u) => lhs(u) || rhs(u);
+    }
+    return node;
+  };
+
+  // andExpr := atom ('*' atom)*
+  const andExpr = () => {
+    let node = atom();
+    while (tokens[pos] === '*') {
+      pos++;
+      const [lhs, rhs] = [node, atom()];
+      node = (u) => lhs(u) && rhs(u);
+    }
+    return node;
+  };
+
+  const atom = () => {
+    if (tokens[pos] === '(') {
+      pos++;
+      const node = orExpr();
+      if (tokens[pos] !== ')') throw new Error(`expected ")" in: ${src}`);
+      pos++;
+      return node;
+    }
+    const token = tokens[pos++];
+    if (!token?.startsWith('Tags.')) throw new Error(`unexpected "${token ?? 'end'}" in: ${src}`);
+    const name = token.slice(5);
+    return (u) => u.tags.includes(name) || u.id === name;
+  };
+
+  const matches = orExpr();
+  if (pos !== tokens.length) throw new Error(`trailing tokens in: ${src}`);
+  return matches;
+}
+
 function resolveBuildTrees(units) {
   const byId = new Map(units.map((u) => [u.id, u]));
 
@@ -359,20 +424,13 @@ function resolveBuildTrees(units) {
     const targets = new Set();
 
     if (builder.canBuildExpr) {
-      const tokens = builder.canBuildExpr
-        .split('*')
-        .map((s) => s.trim().replace(/^Tags\./, ''))
-        .filter(Boolean);
-
-      const direct = tokens.filter((tok) => byId.has(tok));
-      const required = tokens.filter((tok) => !byId.has(tok));
-
-      for (const tok of direct) targets.add(tok);
-
-      if (required.length) {
-        for (const candidate of units) {
-          if (required.every((tag) => candidate.tags.includes(tag))) targets.add(candidate.id);
-        }
+      try {
+        const matches = compileTagExpression(builder.canBuildExpr);
+        for (const candidate of units) if (matches(candidate)) targets.add(candidate.id);
+      } catch (err) {
+        // Never fail silently here — an unparsed expression means a builder
+        // quietly loses its whole build list.
+        issues.push(`${builder.id} has an unparseable canBuild (${err.message})`);
       }
     }
 
