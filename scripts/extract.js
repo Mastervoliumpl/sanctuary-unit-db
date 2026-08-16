@@ -14,6 +14,14 @@ const OUT_FILE = path.join(here, '..', 'public', 'data', 'units.json');
 const FACTIONS = { e: 'EDA', c: 'Chosen', g: 'Guard', w: 'Guard' };
 const DOMAINS = { l: 'Land', a: 'Air', n: 'Naval', s: 'Structure' };
 
+// The faction tag a unit should carry, derived from its id. Used to catch
+// mis-tagged templates — see normaliseFactionTag.
+const FACTION_TAGS = { e: 'EDA', c: 'CHOSEN', g: 'GUARD', w: 'GUARD' };
+const ALL_FACTION_TAGS = new Set(Object.values(FACTION_TAGS));
+
+// Problems found in the game's own data, surfaced rather than silently patched.
+const issues = [];
+
 // Role is inferred from the icon symbol the game already assigns each unit,
 // which is more reliable than guessing from tags or names.
 const ROLES = {
@@ -39,6 +47,8 @@ function main() {
   console.log(`game:      ${gameDir}`);
 
   const available = readAvailability(path.join(lua, 'common', 'units', 'availableUnits.lua'));
+  const models = scanUnitModels(gameDir);
+  console.log(`models:    ${models.size} unit ids have LOD art in the scene files`);
   const templateDir = path.join(lua, 'common', 'units', 'unitsTemplates');
 
   const units = [];
@@ -52,10 +62,19 @@ function main() {
     }
     try {
       const raw = parseLuaTable(fs.readFileSync(file, 'utf8'), { assignment: 'UnitTemplate' });
-      units.push(toUnit(raw, id, available));
+      units.push(toUnit(raw, id, available, models));
     } catch (err) {
       failures.push({ id, reason: err.message });
     }
+  }
+
+  // Two units sharing an id would silently lose build-tree edges to whichever
+  // one a Map lookup happened to keep, so treat it as fatal rather than subtle.
+  const counts = new Map();
+  for (const u of units) counts.set(u.id, (counts.get(u.id) ?? 0) + 1);
+  const collisions = [...counts].filter(([, n]) => n > 1);
+  if (collisions.length) {
+    throw new Error(`duplicate unit ids: ${collisions.map(([id, n]) => `${id} ×${n}`).join(', ')}`);
   }
 
   resolveBuildTrees(units);
@@ -67,6 +86,8 @@ function main() {
       unitCount: units.length,
       // Surfaced in the UI so nobody mistakes demo balance for release balance.
       isDemo: /demo/i.test(path.basename(gameDir)),
+      // Faults in the game's own templates that this run worked around.
+      dataIssues: issues,
     },
     units: units.sort((a, b) => a.id.localeCompare(b.id)),
   };
@@ -77,8 +98,38 @@ function main() {
   report(units, failures, payload);
 }
 
-// availableUnits.lua marks which templates are actually playable. Units missing
-// from it are treated as restricted by the game, so we mirror that default.
+// Which units actually have a model, found by looking for their LOD assets in
+// the scene files. A unit's mesh, material and textures are all named
+// <tpId>_lod<n>, so the id appearing in that form means the art exists.
+//
+// This replaces availableUnits.lua as the availability signal. That file is
+// hand-maintained ("Validated by eyes!"), disabled in the loader
+// (useAvailableUnitsList = false), and wrong about 90 units — it claims
+// "no model" for things like the Chosen T1 Raider that are plainly modelled.
+function scanUnitModels(gameDir) {
+  const dataDir = path.join(gameDir, 'prototype', 'Sanctuary Shattered Sun_Data');
+  const pattern = /u[ecgw][lans]\d{4}(?=_lod\d)/g;
+  const found = new Set();
+
+  if (!fs.existsSync(dataDir)) return found;
+
+  // Scenes share assets, so any of them carries the full roster; read them all
+  // in case a unit only appears in one. Each is read and released in turn
+  // rather than held together — they run to ~100 MB apiece.
+  for (const file of fs.readdirSync(dataDir).filter((f) => /^level\d+$/.test(f))) {
+    let text;
+    try {
+      text = fs.readFileSync(path.join(dataDir, file)).toString('latin1');
+    } catch {
+      continue;
+    }
+    for (const match of text.matchAll(pattern)) found.add(match[0]);
+  }
+  return found;
+}
+
+// availableUnits.lua is kept only as a record of what the developers annotated
+// by hand; it does not drive anything. See scanUnitModels above.
 function readAvailability(file) {
   const map = new Map();
   if (!fs.existsSync(file)) return map;
@@ -94,11 +145,21 @@ function readAvailability(file) {
   return map;
 }
 
-function toUnit(t, id, available) {
+function toUnit(t, id, available, models) {
   const general = t.general ?? {};
   const economy = t.economy ?? {};
-  const tags = t.tags ?? [];
   const status = available.get(id);
+
+  // Identity is the filename, not general.tpId. templateLoader's
+  // ReadUnitTemplate(tp, tpId) takes tpId from the caller and gates on
+  // AvailableUnits[tpId], which is keyed by filename — so that's what the game
+  // uses. One template (ugs2807) carries a stale copied tpId of "ugs2806";
+  // trusting the field would collide two units onto one id.
+  if (general.tpId && general.tpId !== id) {
+    issues.push(`${id} declares tpId "${general.tpId}" — using the filename instead`);
+  }
+
+  const tags = normaliseFactionTag(t.tags ?? [], id);
 
   // Death explosions are listed alongside weapons but only fire when the unit
   // dies, so they're reported separately and kept out of DPS and range.
@@ -112,7 +173,8 @@ function toUnit(t, id, available) {
   };
 
   return {
-    id: general.tpId ?? id,
+    id,
+    declaredTpId: general.tpId && general.tpId !== id ? general.tpId : null,
     name: general.name || null,
     displayName: general.displayName ?? '',
     faction: FACTIONS[id[1]] ?? 'Unknown',
@@ -125,8 +187,12 @@ function toUnit(t, id, available) {
       tech: general.icon?.tech ?? null,
     },
 
-    playable: status?.playable ?? false,
-    statusNote: status?.note ?? null,
+    // The real availability signal: the unit has art and would render in game.
+    hasModel: models.has(id),
+    // Kept for reference only — stale and disabled in the loader. Not used for
+    // filtering; it disagrees with the shipped assets on 90 units.
+    devListed: status?.playable ?? false,
+    devNote: status?.note ?? null,
     demoOnly: tags.includes('DEMO_UI_ONLY'),
 
     cost,
@@ -352,6 +418,35 @@ function mainWeapon(weapons) {
     .sort((a, b) => b.dpsTotal - a.dpsTotal || b.rangeMax - a.rangeMax || b.damage - a.damage)[0];
 }
 
+// Build lists are resolved by matching tag expressions, so a wrong faction tag
+// puts a unit in the wrong faction's factory. Two templates get this wrong:
+//
+//   ugl2806 "Relay"          tagged CHOSEN — its tag list is byte-identical to
+//                            the Chosen sibling ucl2806, so the Guard variant
+//                            was copied without changing the faction. It shows
+//                            up under Chosen factories and is missing from Guard's.
+//   ues1111 "Freeze Station" has no faction tag at all, so no builder expression
+//                            can match it and nothing can build it.
+//
+// The id prefix is unambiguous in both cases, so correct from that and record
+// it. When the templates are fixed upstream these stop firing and nothing about
+// the output changes.
+function normaliseFactionTag(tags, id) {
+  const expected = FACTION_TAGS[id[1]];
+  if (!expected) return tags;
+
+  const present = tags.filter((t) => ALL_FACTION_TAGS.has(t));
+  if (present.length === 1 && present[0] === expected) return tags;
+
+  if (present.length === 0) {
+    issues.push(`${id} has no faction tag — adding ${expected} from its id`);
+  } else {
+    issues.push(`${id} is tagged ${present.join('+')} but its id says ${expected} — corrected`);
+  }
+
+  return [...tags.filter((t) => !ALL_FACTION_TAGS.has(t)), expected].sort();
+}
+
 function tierOf(tags) {
   const tag = tags.find((t) => /^TECH\d$/.test(t));
   return tag ? Number(tag.slice(4)) : null;
@@ -381,11 +476,18 @@ function report(units, failures, payload) {
 
   console.log(`faction:   ${tally('faction')}`);
   console.log(`domain:    ${tally('domain')}`);
-  console.log(`playable:  ${units.filter((u) => u.playable).length} of ${units.length}`);
+  console.log(`with art:  ${units.filter((u) => u.hasModel).length} of ${units.length}`);
+  const stale = units.filter((u) => u.hasModel && !u.devListed).length;
+  if (stale) console.log(`           (availableUnits.lua wrongly excludes ${stale} of them — it is disabled in the loader and unused here)`);
   console.log(`build tree: ${units.filter((u) => u.builds.length).length} builders, ` +
     `${units.filter((u) => u.builtBy.length).length} units reachable`);
   console.log(`wrote:     ${path.relative(process.cwd(), OUT_FILE)} (${size} KB)`);
   if (payload.meta.isDemo) console.log('note:      demo build — balance values are not final');
+
+  if (issues.length) {
+    console.log(`\ngame data faults worked around (${issues.length}):`);
+    for (const issue of issues) console.log(`  · ${issue}`);
+  }
 }
 
 // This is the one script that needs a local game install, so when it can't find

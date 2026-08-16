@@ -8,7 +8,7 @@ const state = {
   groups: [],
   previews: new Set(),
   search: '',
-  filters: { faction: new Set(), domain: new Set(), tier: new Set(), role: new Set(), status: new Set(['Playable']) },
+  filters: { faction: new Set(), domain: new Set(), tier: new Set(), role: new Set(), status: new Set(['In game']) },
   sort: 'default',
   selected: null,
 };
@@ -46,7 +46,7 @@ async function init() {
   state.groups = buildGroups(data.units);
 
   $('#meta-line').textContent =
-    `${data.meta.unitCount} units · ${data.units.filter((u) => u.playable).length} playable · ` +
+    `${data.meta.unitCount} units · ${data.units.filter((u) => u.hasModel).length} with art · ` +
     `extracted ${new Date(data.meta.generatedAt).toLocaleDateString()}`;
 
   buildFilters();
@@ -65,7 +65,7 @@ function buildFilters() {
     { key: 'domain', title: 'Domain', values: distinct((u) => u.domain) },
     { key: 'tier', title: 'Tier', values: distinct((u) => u.tier).sort((a, b) => a - b), label: (v) => `T${v}` },
     { key: 'role', title: 'Role', values: distinct((u) => u.role).sort() },
-    { key: 'status', title: 'Availability', values: ['Playable', 'Not in build'] },
+    { key: 'status', title: 'Availability', values: ['In game', 'No model'] },
   ];
 
   $('#filter-groups').innerHTML = groups
@@ -90,7 +90,7 @@ function matches(unit) {
   if (f.tier.size && !f.tier.has(String(unit.tier))) return false;
   if (f.role.size && !f.role.has(unit.role)) return false;
   if (f.status.size) {
-    const label = unit.playable ? 'Playable' : 'Not in build';
+    const label = unit.hasModel ? 'In game' : 'No model';
     if (!f.status.has(label)) return false;
   }
 
@@ -238,9 +238,9 @@ function boardHtml(groups, factions) {
 }
 
 function cardHtml(u) {
-  return `<button type="button" class="card ${u.playable ? '' : 'unplayable'}"
+  return `<button type="button" class="card ${u.hasModel ? '' : 'unplayable'}"
       data-id="${u.id}" style="--fc:${FACTION_COLOURS[u.faction]}">
-    ${unitIcon(u.icon, u.faction, { size: 38, muted: !u.playable })}
+    ${unitIcon(u.icon, u.faction, { size: 38, muted: !u.hasModel })}
     <span class="who">
       <h4>${u.name ?? shortName(u)}</h4>
       <small>${u.displayName}</small>
@@ -319,7 +319,7 @@ function detailHtml(u) {
 
   return `
   <div class="detail-head">
-    ${unitIcon(u.icon, u.faction, { size: 52, muted: !u.playable })}
+    ${unitIcon(u.icon, u.faction, { size: 52, muted: !u.hasModel })}
     <div>
       <h2>${u.name ?? shortName(u)}</h2>
       <div class="sub2">${u.displayName} · <code>${u.id}</code></div>
@@ -333,7 +333,7 @@ function detailHtml(u) {
     ${u.tier ? `<span class="badge">Tier ${u.tier}</span>` : ''}
     <span class="badge">${u.domain}</span>
     ${u.role ? `<span class="badge">${u.role}</span>` : ''}
-    ${u.playable ? '' : `<span class="badge warn">Not in this build${u.statusNote ? ` — ${u.statusNote}` : ''}</span>`}
+    ${u.hasModel ? '' : '<span class="badge warn">No model in this build</span>'}
   </div>
 
   <div class="section"><h3>Cost &amp; core</h3><dl class="statgrid">${core}</dl></div>
@@ -461,7 +461,7 @@ function buildSection(u) {
         const t = state.byId.get(id);
         if (!t) return '';
         return `<button type="button" class="unit-link" data-id="${id}">
-                  ${unitIcon(t.icon, t.faction, { size: 20, muted: !t.playable })}${builderName(t)}</button>`;
+                  ${unitIcon(t.icon, t.faction, { size: 20, muted: !t.hasModel })}${builderName(t)}</button>`;
       })
       .join('')}</div>`;
 
@@ -509,7 +509,7 @@ function wireEvents() {
 
   $('#reset').addEventListener('click', () => {
     for (const set of Object.values(state.filters)) set.clear();
-    state.filters.status = new Set(['Playable']);
+    state.filters.status = new Set(['In game']);
     state.search = '';
     $('#search').value = '';
     syncChips();
@@ -558,10 +558,10 @@ function writeUrl() {
     if (set.size) p.set(group, [...set].join(','));
   }
 
-  // Availability defaults to Playable, so an empty set is a deliberate choice
+  // Availability defaults to In game, so an empty set is a deliberate choice
   // and has to be written out — otherwise a reload would silently re-apply it.
   const status = state.filters.status;
-  const isDefault = status.size === 1 && status.has('Playable');
+  const isDefault = status.size === 1 && status.has('In game');
   if (!isDefault) p.set('status', status.size ? [...status].join(',') : 'any');
 
   if (state.sort !== 'default') p.set('sort', state.sort);
@@ -583,7 +583,7 @@ function readUrl() {
 
   const status = p.get('status');
   state.filters.status =
-    status === null ? new Set(['Playable']) : new Set(status === 'any' ? [] : status.split(',').filter(Boolean));
+    status === null ? new Set(['In game']) : new Set(status === 'any' ? [] : status.split(',').filter(Boolean));
 
   syncChips();
 

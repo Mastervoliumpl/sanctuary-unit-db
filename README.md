@@ -32,7 +32,7 @@ The game ships its unit balance as plain-text Lua under
 | Path | What it gives us |
 |---|---|
 | `unitsTemplates/<id>/<id>.santp` | One file per unit — cost, health, weapons, movement, tags |
-| `availableUnits.lua` | Which units are actually playable in this build |
+| `availableUnits.lua` | A stale hand-maintained list — **do not use**, see below |
 | `templateExplainations.lua` | The devs' own annotated schema, including the build-time formula |
 
 Every `.santp` is a pure Lua table literal — no functions, requires or
@@ -76,6 +76,35 @@ DPS           = damage x shotsPerCycle / reloadTime
 Seven weapons in the current data have more groups than they fire per cycle
 (they cycle round-robin); counting every group would overstate those by up to 8x.
 Weapons with no reload time report 0 DPS rather than infinity.
+
+### Which units are actually in the build
+
+**Don't use `availableUnits.lua` for this.** It looks authoritative and isn't:
+
+- Its own header says `List of "working" units. Validated by eyes!` — it's
+  maintained by hand.
+- The loader reads `local useAvailableUnitsList = false`, so **the game ignores
+  it entirely** and loads every template.
+- It's wrong about 90 units. It marks the Chosen T1 Raider (`ucl1002`) as
+  "no model" when the model plainly exists, and marks `ugl2002` unavailable
+  while its own trailing comment reads "model exist".
+
+The real signal is whether the unit has art. A unit's mesh, material and
+textures are all named `<tpId>_lod<n>`, so scanning the `level*` scene files for
+that pattern gives a verifiable list of what would actually render:
+
+```
+u[ecgw][lans]\d{4}(?=_lod\d)
+```
+
+That yields 226 of 283 units, and `extract.js` does the scan itself (about a
+second — no asset tooling needed, it's a plain string scan). The result is the
+`hasModel` field, which drives the Availability filter.
+
+The two signals cross-check cleanly: of the 226, all but four also have a
+rendered preview thumbnail, and no unit has a preview without a model.
+`availableUnits.lua` is still parsed into `devListed` / `devNote` purely as a
+record of developer intent — nothing reads it.
 
 ### Which weapon block is live
 
@@ -227,10 +256,10 @@ build menu uses. These are `Texture2D` assets named exactly after the template
 id (`uel1001.png`), sitting alongside the model's `_albedo_team` / `_mask` /
 `_normal_alpha` textures in the same `level*` scene files.
 
-222 of 283 units have one, and **every playable unit is covered** — the rest are
-all disabled content. Three units ship a fully transparent placeholder instead
-of a render; `npm run icons` detects those and leaves them out of the manifest,
-so the panel is omitted rather than showing an empty frame.
+222 of 283 units have one — 222 of the 226 that have models, the four gaps being
+units whose preview is a fully transparent placeholder. `npm run icons` detects
+those and leaves them out of the manifest, so the panel is omitted rather than
+showing an empty frame.
 
 They're **64×64, and that's the only size that exists** (checked across scene
 files). The UI upscales to 132px with smooth filtering on a faction-tinted
@@ -263,9 +292,9 @@ hundred MB of hosting. One model is an afternoon; 283 is a separate project.
 
 - Currently built from the **demo** install, so balance values are provisional.
   `meta.isDemo` is set in the JSON if you want to surface that in the UI later.
-- 136 of 283 units are marked playable, and the site defaults to showing only
-  those. The rest are in the files but disabled — mostly missing models, and all
-  naval. Clear the Availability filter to see them.
+- 226 of 283 units have art and the site defaults to showing only those. The
+  other 57 exist as templates but have no model, so they'd be invisible in game.
+  Switch the Availability filter to "No model" to see them.
 - Nothing here is authoritative. Re-run `npm run extract` after a game patch.
 
 ## Deploying

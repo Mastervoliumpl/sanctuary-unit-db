@@ -62,10 +62,10 @@ function checkIcons(units) {
   if (missingFiles > 5) fail(`…and ${missingFiles - 5} more missing icon files`);
 
   const onArtwork = units.filter((u) => manifest.has(comboOf(u))).length;
-  const playableOnSvg = units.filter((u) => u.playable && !manifest.has(comboOf(u)));
+  const modelledOnSvg = units.filter((u) => u.hasModel && !manifest.has(comboOf(u)));
   notes.push(`${onArtwork}/${units.length} units on extracted icons, rest fall back to generated SVG`);
-  if (playableOnSvg.length) {
-    notes.push(`${playableOnSvg.length} playable units use the SVG fallback: ${playableOnSvg.map((u) => u.id).join(', ')}`);
+  if (modelledOnSvg.length) {
+    notes.push(`${modelledOnSvg.length} in-game units use the SVG icon fallback: ${modelledOnSvg.map((u) => u.id).join(', ')}`);
   }
 }
 
@@ -89,9 +89,9 @@ function checkPreviews(units) {
   const orphans = manifest.filter((id) => !known.has(id));
   if (orphans.length) notes.push(`${orphans.length} previews have no matching unit (harmless, just dead weight)`);
 
-  const playable = units.filter((u) => u.playable);
-  const covered = playable.filter((u) => manifest.includes(u.id)).length;
-  notes.push(`${covered}/${playable.length} playable units have a preview render`);
+  const inGame = units.filter((u) => u.hasModel);
+  const covered = inGame.filter((u) => manifest.includes(u.id)).length;
+  notes.push(`${covered}/${inGame.length} in-game units have a preview render`);
 }
 
 const comboOf = (u) => `${u.icon?.shape}_${u.icon?.tech}_${u.icon?.symbol}`;
