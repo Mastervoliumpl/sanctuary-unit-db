@@ -1,0 +1,16 @@
+{
+  "name": "sanctuary-unit-db",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unit database for Sanctuary: Shattered Sun, generated from the game's Lua templates",
+  "type": "module",
+  "scripts": {
+    "extract": "node scripts/extract.js",
+    "icons": "node scripts/build-icons.js",
+    "dev": "node scripts/serve.js",
+    "build": "npm run extract && npm run icons"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
