@@ -141,21 +141,50 @@ function scanUnitModels(gameDir) {
   return found;
 }
 
-// availableUnits.lua is kept only as a record of what the developers annotated
-// by hand; it does not drive anything. See scanUnitModels above.
+// The engine tree's availableUnits.lua is a live QA tracker, not the stale list
+// the prototype tree carries. Each row is
+//
+//   ucl4001 = true,  -- ChosenT4Bot   -- OK
+//   uca4011 = false, -- ChosenT4Gunship -- OK_PENDING_APPROVAL
+//
+// and the reason codes line up with the shipped art almost exactly: every
+// OK/OK_PENDING_APPROVAL/BONE_MISSMATCH unit has a model, and NO_MODEL units
+// overwhelmingly don't. So the flag means "signed off and enabled", not
+// "exists" — the two together give a three-way status.
 function readAvailability(file) {
   const map = new Map();
   if (!fs.existsSync(file)) return map;
   const text = fs.readFileSync(file, 'utf8');
+
   for (const m of text.matchAll(/^\s*([a-z]{3}\d{4})\s*=\s*(true|false)\s*,?\s*(?:--\s*(.*))?$/gm)) {
-    const note = (m[3] ?? '').replace(/\s+/g, ' ').trim();
+    const comment = (m[3] ?? '').replace(/\s+/g, ' ').trim();
+    // The comment carries the internal name, then the reason code.
+    const [internalName, reason] = comment.split(/\s+--\s+/);
     map.set(m[1], {
-      playable: m[2] === 'true',
-      // The trailing comment carries the internal name then a status note.
-      note: note.split(/\s{2,}|\s--\s/).pop() || null,
+      enabled: m[2] === 'true',
+      internalName: internalName?.trim() || null,
+      reason: reason?.trim() || null,
     });
   }
   return map;
+}
+
+// Reason codes, prettified for display.
+const REASONS = {
+  OK: 'Signed off',
+  OK_PENDING_APPROVAL: 'Pending approval',
+  BONE_MISSMATCH: 'Rigging mismatch',
+  BATTLE_NO_DAMAGE: 'No damage state',
+  NO_MODEL: 'No model',
+};
+
+// Three buckets, from the empirical art scan crossed with the QA flag:
+//   in-game      art exists and it is signed off and enabled
+//   in-progress  art exists but it is gated (approval, rigging, damage state)
+//   no-model     nothing to render
+function statusOf(hasModel, entry) {
+  if (!hasModel) return 'no-model';
+  return entry?.enabled ? 'in-game' : 'in-progress';
 }
 
 function toUnit(t, id, available, models) {
@@ -200,12 +229,14 @@ function toUnit(t, id, available, models) {
       tech: general.icon?.tech ?? null,
     },
 
-    // The real availability signal: the unit has art and would render in game.
+    // Does the unit have art that would actually render, found by scanning the
+    // scene files for its LOD assets rather than trusting any list.
     hasModel: models.has(id),
-    // Kept for reference only — stale and disabled in the loader. Not used for
-    // filtering; it disagrees with the shipped assets on 90 units.
-    devListed: status?.playable ?? false,
-    devNote: status?.note ?? null,
+    // in-game | in-progress | no-model
+    status: statusOf(models.has(id), status),
+    // Why it isn't enabled, straight from the QA tracker's reason code.
+    statusReason: REASONS[status?.reason] ?? status?.reason ?? null,
+    internalName: status?.internalName ?? null,
     demoOnly: tags.includes('DEMO_UI_ONLY'),
 
     cost,
@@ -534,9 +565,12 @@ function report(units, failures, payload) {
 
   console.log(`faction:   ${tally('faction')}`);
   console.log(`domain:    ${tally('domain')}`);
-  console.log(`with art:  ${units.filter((u) => u.hasModel).length} of ${units.length}`);
-  const stale = units.filter((u) => u.hasModel && !u.devListed).length;
-  if (stale) console.log(`           (availableUnits.lua wrongly excludes ${stale} of them — it is disabled in the loader and unused here)`);
+  const byStatus = (s) => units.filter((u) => u.status === s).length;
+  console.log(
+    `status:    ${byStatus('in-game')} in game, ` +
+      `${byStatus('in-progress')} modelled but gated, ` +
+      `${byStatus('no-model')} no model`
+  );
   console.log(`build tree: ${units.filter((u) => u.builds.length).length} builders, ` +
     `${units.filter((u) => u.builtBy.length).length} units reachable`);
   console.log(`wrote:     ${path.relative(process.cwd(), OUT_FILE)} (${size} KB)`);

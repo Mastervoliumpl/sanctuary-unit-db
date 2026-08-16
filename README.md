@@ -47,7 +47,7 @@ Under whichever tree, the files used are:
 | Path | What it gives us |
 |---|---|
 | `unitsTemplates/<id>/<id>.santp` | One file per unit — cost, health, weapons, movement, tags |
-| `availableUnits.lua` | A stale hand-maintained list — **do not use**, see below |
+| `availableUnits.lua` | QA sign-off status per unit, with reason codes (engine tree only) |
 | `templateExplainations.lua` | The devs' own annotated schema, including the build-time formula |
 
 Every `.santp` is a pure Lua table literal — no functions, requires or
@@ -94,32 +94,47 @@ Weapons with no reload time report 0 DPS rather than infinity.
 
 ### Which units are actually in the build
 
-**Don't use `availableUnits.lua` for this.** It looks authoritative and isn't:
+Availability is a **three-way** status, from two independent signals.
 
-- Its own header says `List of "working" units. Validated by eyes!` — it's
-  maintained by hand.
-- The loader reads `local useAvailableUnitsList = false`, so **the game ignores
-  it entirely** and loads every template.
-- It's wrong about 86 units. It marks the Chosen T1 Raider (`ucl1002`) as
-  "no model" when the model plainly exists, and marks `ugl2002` unavailable
-  while its own trailing comment reads "model exist".
-
-The real signal is whether the unit has art. A unit's mesh, material and
-textures are all named `<tpId>_lod<n>`, so scanning the `level*` scene files for
-that pattern gives a verifiable list of what would actually render:
+**Signal 1 — does it have art?** A unit's mesh, material and textures are all
+named `<tpId>_lod<n>`, so scanning the `level*` scene files gives a verifiable
+list of what would render:
 
 ```
 u[ecgw][lans]\d{4}(?=_lod\d)
 ```
 
-That yields 226 of 283 units, and `extract.js` does the scan itself (about a
-second — no asset tooling needed, it's a plain string scan). The result is the
-`hasModel` field, which drives the Availability filter.
+226 of 283 units. `extract.js` does this itself in about a second — a plain
+string scan, no asset tooling. That's the `hasModel` field.
 
-The two signals cross-check cleanly: of the 226, all but four also have a
-rendered preview thumbnail, and no unit has a preview without a model.
-`availableUnits.lua` is still parsed into `devListed` / `devNote` purely as a
-record of developer intent — nothing reads it.
+**Signal 2 — is it signed off?** The engine tree's `availableUnits.lua` is a
+live QA tracker, not the stale list the prototype tree carries. Its reason codes
+line up with the shipped art almost exactly:
+
+| Reason | Count | Have art |
+|---|---|---|
+| `OK` / true | 140 | 140 |
+| `OK_PENDING_APPROVAL` / false | 64 | 64 |
+| `NO_MODEL` / false | 61 | 5 |
+| `OK` / false | 9 | 9 |
+| `BONE_MISSMATCH` / false | 7 | 7 |
+| `BATTLE_NO_DAMAGE` / false | 1 | 1 |
+
+So the boolean means *"signed off and enabled"*, not *"exists"* — the non-`OK`
+codes describe units that are modelled but gated. Crossing the two gives:
+
+- **`in-game`** (140) — has art, signed off and enabled
+- **`in-progress`** (86) — has art, but gated: pending approval, rigging
+  mismatch, or no damage state. `statusReason` carries which.
+- **`no-model`** (57) — nothing to render
+
+The Availability filter defaults to `in-game`. In-progress units keep their
+faction colour and carry a `WIP` tag with the reason on hover, since they have
+real art and real numbers — only `no-model` units are dimmed.
+
+Note the prototype tree's copy of this file is *not* usable this way: it uses
+freeform notes that contradict themselves (`ugl2002 = false, -- model exist`).
+The three-way split only works against the engine tree.
 
 ### Which weapon block is live
 
@@ -319,9 +334,8 @@ hundred MB of hosting. One model is an afternoon; 283 is a separate project.
 
 - Currently built from the **demo** install, so balance values are provisional.
   `meta.isDemo` is set in the JSON if you want to surface that in the UI later.
-- 226 of 283 units have art and the site defaults to showing only those. The
-  other 57 exist as templates but have no model, so they'd be invisible in game.
-  Switch the Availability filter to "No model" to see them.
+- The site defaults to the 140 signed-off units. Another 86 are modelled but
+  gated, and 57 have no model at all — use the Availability filter to see them.
 - Nothing here is authoritative. Re-run `npm run extract` after a game patch.
 
 ## Deploying

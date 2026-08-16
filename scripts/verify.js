@@ -65,7 +65,7 @@ function checkIcons(units) {
   const modelledOnSvg = units.filter((u) => u.hasModel && !manifest.has(comboOf(u)));
   notes.push(`${onArtwork}/${units.length} units on extracted icons, rest fall back to generated SVG`);
   if (modelledOnSvg.length) {
-    notes.push(`${modelledOnSvg.length} in-game units use the SVG icon fallback: ${modelledOnSvg.map((u) => u.id).join(', ')}`);
+    notes.push(`${modelledOnSvg.length} modelled units use the SVG icon fallback: ${modelledOnSvg.map((u) => u.id).join(', ')}`);
   }
 }
 
@@ -89,9 +89,17 @@ function checkPreviews(units) {
   const orphans = manifest.filter((id) => !known.has(id));
   if (orphans.length) notes.push(`${orphans.length} previews have no matching unit (harmless, just dead weight)`);
 
-  const inGame = units.filter((u) => u.hasModel);
-  const covered = inGame.filter((u) => manifest.includes(u.id)).length;
-  notes.push(`${covered}/${inGame.length} in-game units have a preview render`);
+  // hasModel is "has art", which is broader than status === 'in-game' — an
+  // in-progress unit is modelled but not enabled, and still needs a preview.
+  const modelled = units.filter((u) => u.hasModel);
+  const covered = modelled.filter((u) => manifest.includes(u.id)).length;
+  notes.push(`${covered}/${modelled.length} modelled units have a preview render`);
+
+  const statuses = units.reduce((acc, u) => ((acc[u.status] = (acc[u.status] ?? 0) + 1), acc), {});
+  notes.push(
+    `status split: ${statuses['in-game'] ?? 0} in game, ` +
+      `${statuses['in-progress'] ?? 0} in progress, ${statuses['no-model'] ?? 0} no model`
+  );
 }
 
 const comboOf = (u) => `${u.icon?.shape}_${u.icon?.tech}_${u.icon?.symbol}`;

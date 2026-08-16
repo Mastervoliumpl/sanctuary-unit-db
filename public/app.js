@@ -2,13 +2,23 @@ import { unitIcon, loadIconManifest, FACTION_COLOURS, FACTION_ORDER } from './ic
 
 const $ = (sel) => document.querySelector(sel);
 
+// Availability comes from the engine tree's QA tracker crossed with whether the
+// unit actually has art. "In progress" means the model exists but is gated —
+// awaiting approval, bad rigging, or missing a damage state.
+const STATUS_LABELS = {
+  'in-game': 'In game',
+  'in-progress': 'In progress',
+  'no-model': 'No model',
+};
+const DEFAULT_STATUS = 'In game';
+
 const state = {
   units: [],
   byId: new Map(),
   groups: [],
   previews: new Set(),
   search: '',
-  filters: { faction: new Set(), domain: new Set(), tier: new Set(), role: new Set(), status: new Set(['In game']) },
+  filters: { faction: new Set(), domain: new Set(), tier: new Set(), role: new Set(), status: new Set([DEFAULT_STATUS]) },
   sort: 'default',
   selected: null,
 };
@@ -46,7 +56,9 @@ async function init() {
   state.groups = buildGroups(data.units);
 
   $('#meta-line').textContent =
-    `${data.meta.unitCount} units · ${data.units.filter((u) => u.hasModel).length} with art · ` +
+    `${data.meta.unitCount} units · ` +
+    `${data.units.filter((u) => u.status === 'in-game').length} in game, ` +
+    `${data.units.filter((u) => u.status === 'in-progress').length} in progress · ` +
     `extracted ${new Date(data.meta.generatedAt).toLocaleDateString()}`;
 
   buildFilters();
@@ -65,7 +77,7 @@ function buildFilters() {
     { key: 'domain', title: 'Domain', values: distinct((u) => u.domain) },
     { key: 'tier', title: 'Tier', values: distinct((u) => u.tier).sort((a, b) => a - b), label: (v) => `T${v}` },
     { key: 'role', title: 'Role', values: distinct((u) => u.role).sort() },
-    { key: 'status', title: 'Availability', values: ['In game', 'No model'] },
+    { key: 'status', title: 'Availability', values: Object.values(STATUS_LABELS) },
   ];
 
   $('#filter-groups').innerHTML = groups
@@ -89,10 +101,7 @@ function matches(unit) {
   if (f.domain.size && !f.domain.has(unit.domain)) return false;
   if (f.tier.size && !f.tier.has(String(unit.tier))) return false;
   if (f.role.size && !f.role.has(unit.role)) return false;
-  if (f.status.size) {
-    const label = unit.hasModel ? 'In game' : 'No model';
-    if (!f.status.has(label)) return false;
-  }
+  if (f.status.size && !f.status.has(STATUS_LABELS[unit.status])) return false;
 
   if (state.search) {
     const q = state.search.toLowerCase();
@@ -238,11 +247,17 @@ function boardHtml(groups, factions) {
 }
 
 function cardHtml(u) {
-  return `<button type="button" class="card ${u.hasModel ? '' : 'unplayable'}"
+  // Only no-model units get dimmed — an in-progress unit has real art and real
+  // numbers, it just isn't switched on, so it keeps its colour and says why.
+  return `<button type="button" class="card ${u.status === 'no-model' ? 'unplayable' : ''}"
       data-id="${u.id}" style="--fc:${FACTION_COLOURS[u.faction]}">
-    ${unitIcon(u.icon, u.faction, { size: 38, muted: !u.hasModel })}
+    ${unitIcon(u.icon, u.faction, { size: 38, muted: u.status === 'no-model' })}
     <span class="who">
-      <h4>${u.name ?? shortName(u)}</h4>
+      <h4>${u.name ?? shortName(u)}${
+        u.status === 'in-progress'
+          ? `<span class="wip" title="${u.statusReason ?? 'Not enabled'}">WIP</span>`
+          : ''
+      }</h4>
       <small>${u.displayName}</small>
       <span class="stat-row">
         <span class="alloy-val">${fmt(u.cost.alloys)}<i>a</i></span>
@@ -319,7 +334,7 @@ function detailHtml(u) {
 
   return `
   <div class="detail-head">
-    ${unitIcon(u.icon, u.faction, { size: 52, muted: !u.hasModel })}
+    ${unitIcon(u.icon, u.faction, { size: 52, muted: u.status === 'no-model' })}
     <div>
       <h2>${u.name ?? shortName(u)}</h2>
       <div class="sub2">${u.displayName} · <code>${u.id}</code></div>
@@ -333,7 +348,9 @@ function detailHtml(u) {
     ${u.tier ? `<span class="badge">Tier ${u.tier}</span>` : ''}
     <span class="badge">${u.domain}</span>
     ${u.role ? `<span class="badge">${u.role}</span>` : ''}
-    ${u.hasModel ? '' : '<span class="badge warn">No model in this build</span>'}
+    ${u.status === 'in-game'
+      ? ''
+      : `<span class="badge warn">${STATUS_LABELS[u.status]}${u.statusReason ? ` — ${u.statusReason}` : ''}</span>`}
   </div>
 
   <div class="section"><h3>Cost &amp; core</h3><dl class="statgrid">${core}</dl></div>
@@ -461,7 +478,7 @@ function buildSection(u) {
         const t = state.byId.get(id);
         if (!t) return '';
         return `<button type="button" class="unit-link" data-id="${id}">
-                  ${unitIcon(t.icon, t.faction, { size: 20, muted: !t.hasModel })}${builderName(t)}</button>`;
+                  ${unitIcon(t.icon, t.faction, { size: 20, muted: t.status === 'no-model' })}${builderName(t)}</button>`;
       })
       .join('')}</div>`;
 
@@ -509,7 +526,7 @@ function wireEvents() {
 
   $('#reset').addEventListener('click', () => {
     for (const set of Object.values(state.filters)) set.clear();
-    state.filters.status = new Set(['In game']);
+    state.filters.status = new Set([DEFAULT_STATUS]);
     state.search = '';
     $('#search').value = '';
     syncChips();
@@ -561,7 +578,7 @@ function writeUrl() {
   // Availability defaults to In game, so an empty set is a deliberate choice
   // and has to be written out — otherwise a reload would silently re-apply it.
   const status = state.filters.status;
-  const isDefault = status.size === 1 && status.has('In game');
+  const isDefault = status.size === 1 && status.has(DEFAULT_STATUS);
   if (!isDefault) p.set('status', status.size ? [...status].join(',') : 'any');
 
   if (state.sort !== 'default') p.set('sort', state.sort);
@@ -583,7 +600,7 @@ function readUrl() {
 
   const status = p.get('status');
   state.filters.status =
-    status === null ? new Set(['In game']) : new Set(status === 'any' ? [] : status.split(',').filter(Boolean));
+    status === null ? new Set([DEFAULT_STATUS]) : new Set(status === 'any' ? [] : status.split(',').filter(Boolean));
 
   syncChips();
 
