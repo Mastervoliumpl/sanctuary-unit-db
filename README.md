@@ -76,21 +76,42 @@ so the alignment survives sorting.
 
 ## How derived values are calculated
 
-Most fields are copied straight across. Three are computed, and the assumptions
+Most fields are copied straight across. Several are computed, and the assumptions
 matter if you're using this for balance work:
 
-**DPS.** Per the game's schema, `muzzleSalvoSize` is the number of muzzle
-*groups* that fire per cycle — not shots per muzzle — and each group fires all
-of its bones together. So:
+**DPS.** Ported directly from the game's own `AI/AIFunctions.lua` —
+`GetWeaponDamagePerSecond` and `GetWeaponCycleMuzzleCount` — so the site agrees
+with the figure the AI itself uses. Don't reimplement it from intuition; four
+separate things make the naive version wrong:
 
 ```
-shotsPerCycle = total muzzles across the first `muzzleSalvoSize` groups
-DPS           = damage x shotsPerCycle / reloadTime
+muzzleCount = sum of muzzles over salvoSize groups, wrapping: ((i-1) % groupCount) + 1
+cycleTime   = max(reloadTime, reloadTime + (salvoSize - 1) * muzzleSalvoDelay)
+DPS         = (damage * muzzleCount + damageOverTimePulses) / cycleTime
 ```
 
-Seven weapons in the current data have more groups than they fire per cycle
-(they cycle round-robin); counting every group would overstate those by up to 8x.
-Weapons with no reload time report 0 DPS rather than infinity.
+1. **Beam `damage` is per tick, not per shot,** and the game runs at
+   `Constants.TickRate = 10`. `beamLifetime` says which kind:
+   `-1` continuous (`damage x muzzles x 10`, **reloadTime is irrelevant**),
+   `1` pulse — one tick per reload, `N` burst — N ticks per reload.
+   Auger is a continuous beam: 25.64 x 10 = **256.4 DPS**, not 25.64/3 = 8.5.
+2. **Salvo indices wrap around the muzzle groups.** A weapon with a salvo of 20
+   over 1 group fires that group 20 times a cycle. Capping at the group count
+   put Quasar at 18.75 DPS instead of 362.1.
+3. **`muzzleSalvoDelay` stretches the cycle** past `reloadTime` alone — that
+   pulls most multi-barrel units *down*, e.g. Kodiak 348.63 to 316.93.
+4. **`damageOverTimePulseCount x damageOverTimePulseDamage`** adds to the
+   numerator.
+
+Beam totals only, before and after porting: Tripod Bot 453 → 2000, Hovertank
+2955 → 6795, Engraver 333 → 3333, Auger 8.55 → 256.4. Pulse beams were already
+right, which is why the error hid for so long.
+
+**Weapons the game itself scores zero.** Four bomber weapons (Meteor, Inertia,
+Impulse, TALEN) declare an empty `muzzles` list, so `table.getn` returns 0 and
+the reference formula yields 0 DPS despite real damage values. That's a template
+gap, not a genuine zero, so those report `dps: null` and render as "dps unknown"
+rather than a confident 0.
 
 ### Which units are actually in the build
 

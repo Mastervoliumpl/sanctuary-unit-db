@@ -19,6 +19,10 @@ const DOMAINS = { l: 'Land', a: 'Air', n: 'Naval', s: 'Structure' };
 const FACTION_TAGS = { e: 'EDA', c: 'CHOSEN', g: 'GUARD', w: 'GUARD' };
 const ALL_FACTION_TAGS = new Set(Object.values(FACTION_TAGS));
 
+// Simulation tick rate, from the game's Constants.TickRate. Beam weapons deal
+// their `damage` value once per tick, so this converts them to per-second.
+const TICK_RATE = 10;
+
 // Problems found in the game's own data, surfaced rather than silently patched.
 const issues = [];
 
@@ -283,7 +287,11 @@ function toUnit(t, id, available, models) {
     deathExplosion: deathExplosion
       ? { damage: deathExplosion.damage, radius: deathExplosion.damageRadius }
       : null,
-    dps: round(weapons.reduce((sum, w) => sum + w.dpsTotal, 0)),
+    // Null rather than 0 when every damaging weapon has an unknown figure, so
+    // the UI shows an em dash instead of claiming the unit deals no damage.
+    dps: weapons.length && weapons.every((w) => w.dpsTotal == null)
+      ? null
+      : round(weapons.reduce((sum, w) => sum + (w.dpsTotal ?? 0), 0)),
     maxRange: weapons.length ? Math.max(...weapons.map((w) => w.rangeMax)) : 0,
     // The main weapon's travel speed. Ranked among weapons that actually fire a
     // projectile, so a unit whose top gun is a beam still reports its cannon
@@ -358,29 +366,82 @@ function aimingOf(w) {
   };
 }
 
-function toWeapon(w) {
-  const damage = w.damage ?? 0;
-  const reload = w.reloadTime ?? 0;
+// Ported from the game's own AI/AIFunctions.lua: GetWeaponCycleMuzzleCount.
+// Salvo indices wrap around the muzzle groups, so a weapon whose salvo size
+// exceeds its group count fires some groups more than once per cycle — a series
+// of barrels cycling. Capping at the group count, as this used to, undercounts.
+function cycleMuzzleCount(w) {
   const groups = w.muzzleGroups ?? [];
-  const salvoGroups = Math.min(w.muzzleSalvoSize ?? 1, groups.length || 1);
-  const isBeam = w.beamLifetime != null;
+  const salvoSize = w.muzzleSalvoSize ?? 1;
+  if (groups.length < 1) return salvoSize;
 
-  const fired = groups.slice(0, salvoGroups);
-  const shotsPerCycle = fired.length
-    ? fired.reduce((n, g) => n + (g.muzzles?.length ?? 1), 0)
-    : salvoGroups;
+  let count = 0;
+  for (let salvoIndex = 1; salvoIndex <= salvoSize; salvoIndex++) {
+    const group = groups[(salvoIndex - 1) % groups.length];
+    // Mirrors table.getn(muzzleGroup.muzzles or muzzleGroup): a list gives its
+    // length, anything else gives 0. Four bomber weapons ship an empty muzzles
+    // list, and the game scores them 0 as a result — see toWeapon.
+    const bones = group?.muzzles ?? group;
+    count += Array.isArray(bones) ? bones.length : 0;
+  }
+  return count;
+}
+
+// Ported from AIFunctions.lua: GetWeaponDamagePerSecond — the game's own
+// sustained-DPS function, so the site agrees with what the AI uses.
+//
+// For beams `damage` is per tick, not per shot, and the game runs at
+// Constants.TickRate = 10:
+//   beamLifetime -1  continuous — damage x muzzles x 10; reloadTime is irrelevant
+//   beamLifetime  1  pulse (railgun-like) — one tick of damage per reload cycle
+//   beamLifetime  N  burst — N ticks of damage per reload cycle
+// Non-beams fall through to damage x muzzles per cycle.
+//
+// Cycle time also accounts for muzzleSalvoDelay: a salvo fired with a delay
+// between groups stretches the cycle past reloadTime alone.
+function weaponDps(w) {
+  if (w.category === 'DeathExplosion') return 0;
+
+  let damage = w.damage ?? 0;
+  const reloadTime = w.reloadTime ?? 1;
+  const salvoSize = w.muzzleSalvoSize ?? 1;
+  const salvoDelay = w.muzzleSalvoDelay ?? 0;
+  const muzzleCount = cycleMuzzleCount(w);
+  const damageOverTime = (w.damageOverTimePulseCount ?? 0) * (w.damageOverTimePulseDamage ?? 0);
+  const cycleTime = Math.max(reloadTime, reloadTime + (salvoSize - 1) * salvoDelay);
+
+  if (w.beamLifetime != null && w.beamLifetime > 0) {
+    damage = damage * w.beamLifetime;
+  } else if (w.beamLifetime != null && w.beamLifetime < 0) {
+    return damage * muzzleCount * TICK_RATE;
+  }
+
+  if (cycleTime <= 0) return 0;
+  return (damage * muzzleCount + damageOverTime) / cycleTime;
+}
+
+function toWeapon(w) {
+  const groups = w.muzzleGroups ?? [];
+  const beamLifetime = w.beamLifetime ?? null;
+  const isBeam = beamLifetime != null;
 
   return {
-    damage,
+    damage: w.damage ?? 0,
     damageType: w.damageType ?? 'Normal',
     damageRadius: w.damageRadius ?? 0,
-    reloadTime: reload,
-    salvoGroups,
+    reloadTime: w.reloadTime ?? 0,
+    salvoSize: w.muzzleSalvoSize ?? 1,
+    salvoDelay: w.muzzleSalvoDelay ?? 0,
     totalGroups: groups.length,
-    shotsPerCycle,
+    // Muzzles that actually fire in one cycle, wrapping as the game does.
+    shotsPerCycle: cycleMuzzleCount(w),
     rangeMax: w.rangeMax ?? 0,
     rangeMin: w.rangeMin ?? 0,
     isBeam,
+    beamLifetime,
+    // -1 holds the beam on target indefinitely; a positive count is how many
+    // ticks of damage it lands per reload.
+    beamMode: !isBeam ? null : beamLifetime < 0 ? 'continuous' : beamLifetime === 1 ? 'pulse' : 'burst',
     // Beams apply damage along their length rather than launching anything, so
     // the speed on their controllers is a lead-calculation artefact, not travel
     // time. Reporting it would imply a flight time that doesn't exist.
@@ -389,7 +450,10 @@ function toWeapon(w) {
     ...aimingOf(w),
     targets: w.layerTargetLimits ?? [],
     category: w.category ?? null,
-    dps: reload > 0 ? round((damage * shotsPerCycle) / reload) : 0,
+    // A weapon with damage but no muzzle bones scores 0 under the game formula.
+    // That is a template gap rather than a real zero, so report it as unknown
+    // instead of a confident 0 — toUnit flags which units are affected.
+    dps: (w.damage ?? 0) > 0 && cycleMuzzleCount(w) === 0 ? null : round(weaponDps(w)),
   };
 }
 
@@ -496,15 +560,15 @@ function groupWeapons(weapons) {
   }
 
   return [...groups.values()]
-    .map((w) => ({ ...w, dpsTotal: round(w.dps * w.count) }))
-    .sort((a, b) => b.dpsTotal - a.dpsTotal || b.rangeMax - a.rangeMax);
+    .map((w) => ({ ...w, dpsTotal: w.dps == null ? null : round(w.dps * w.count) }))
+    .sort((a, b) => (b.dpsTotal ?? 0) - (a.dpsTotal ?? 0) || b.rangeMax - a.rangeMax);
 }
 
 // Highest DPS wins; ties go to the longer-ranged weapon, then the harder hitter.
 function mainWeapon(weapons) {
   return weapons
     .slice()
-    .sort((a, b) => b.dpsTotal - a.dpsTotal || b.rangeMax - a.rangeMax || b.damage - a.damage)[0];
+    .sort((a, b) => (b.dpsTotal ?? 0) - (a.dpsTotal ?? 0) || b.rangeMax - a.rangeMax || b.damage - a.damage)[0];
 }
 
 // Build lists are resolved by matching tag expressions, so a wrong faction tag

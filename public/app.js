@@ -279,7 +279,7 @@ function weaponLines(u) {
     const bits = [
       w.damage > 0 ? `${fmt(w.damage)} dmg` : 'impact',
       `${w.rangeMax} rng`,
-      w.isBeam ? 'beam' : w.projectileSpeed ? `${fmt(w.projectileSpeed)} spd` : null,
+      w.isBeam ? beamLabel(w).replace(' beam', '') : w.projectileSpeed ? `${fmt(w.projectileSpeed)} spd` : null,
     ].filter(Boolean);
 
     return `<span class="wline">
@@ -391,12 +391,16 @@ function weaponsSection(u) {
   const blocks = u.weapons.map((w) => {
     // Facts are only listed when the weapon actually has them, so a beam doesn't
     // show an empty speed and a single-shot gun doesn't show a salvo of one.
+    // A continuous beam ignores reload entirely — it damages every tick it holds
+    // the target — so listing a reload next to it would be actively misleading.
+    const continuous = w.beamMode === 'continuous';
     const facts = [
-      w.reloadTime ? `${w.reloadTime}s reload` : null,
+      continuous ? null : w.reloadTime ? `${w.reloadTime}s reload` : null,
       `${w.rangeMax} range`,
       w.damageRadius ? `${w.damageRadius} radius` : null,
-      w.isBeam ? 'beam' : w.projectileSpeed ? `${fmt(w.projectileSpeed)} speed` : null,
+      w.isBeam ? beamLabel(w) : w.projectileSpeed ? `${fmt(w.projectileSpeed)} speed` : null,
       w.shotsPerCycle > 1 ? `${w.shotsPerCycle} shots/cycle` : null,
+      w.salvoDelay ? `${w.salvoDelay}s between shots` : null,
     ].filter(Boolean);
 
     // A weapon with no traverse controller is bolted facing forward — worth
@@ -413,7 +417,9 @@ function weaponsSection(u) {
       <div class="weapon-top">
         ${w.count > 1 ? `<span class="wcount">×${w.count}</span>` : ''}
         <strong>${weaponLabel(w)}</strong>
-        ${w.dpsTotal ? `<span class="wdps">${fmt(w.dpsTotal)} dps</span>` : ''}
+        ${w.dpsTotal != null
+          ? `<span class="wdps">${fmt(w.dpsTotal)} dps</span>`
+          : '<span class="wdps" title="The template declares no muzzle bones, so the game scores this weapon zero">dps unknown</span>'}
       </div>
       <div class="weapon-facts">${facts.join(' · ')}</div>
       <div class="weapon-facts aim">${aim.join(' · ')}</div>
@@ -430,6 +436,14 @@ function weaponLabel(w) {
   const kind = w.isBeam ? 'Beam' : w.category ? splitCamel(w.category) : null;
   if (w.damage <= 0) return `${kind ?? 'Weapon'} · damage on impact`;
   return kind ? `${fmt(w.damage)} dmg · ${kind}` : `${fmt(w.damage)} dmg`;
+}
+
+// Continuous beams damage every tick while held on target; pulse beams land a
+// single tick per reload; burst beams land beamLifetime ticks per reload.
+function beamLabel(w) {
+  if (w.beamMode === 'continuous') return 'continuous beam';
+  if (w.beamMode === 'burst') return `${w.beamLifetime}-tick beam`;
+  return 'pulse beam';
 }
 
 // "AOEDelayedCluster" -> "AOE Delayed Cluster"; the first pass breaks an
