@@ -61,8 +61,7 @@ const SYMBOLS: Record<string, string> = {
     '<path d="M21 29 L32 41 L43 29" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>',
 
   // Engineer: build cross.
-  engineer:
-    '<path d="M32 15 V39 M20 27 H44" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
+  engineer: '<path d="M32 15 V39 M20 27 H44" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
 
   // Intel: radar sweep arcs.
   intel:
@@ -75,8 +74,7 @@ const SYMBOLS: Record<string, string> = {
     '<path d="M32 15 L44 20 V29 Q44 39 32 43 Q20 39 20 29 V20 Z" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>',
 
   // Plasma / heavy energy: four-point star.
-  plasma:
-    '<path d="M32 14 L36 24 L46 27 L36 30 L32 40 L28 30 L18 27 L28 24 Z" fill="currentColor"/>',
+  plasma: '<path d="M32 14 L36 24 L46 27 L36 30 L32 40 L28 30 L18 27 L28 24 Z" fill="currentColor"/>',
 
   // Alloy / economy: hex resource cell.
   alloy:
@@ -131,12 +129,7 @@ export function UnitIcon({ icon, faction, manifest, size = 40, muted = false }: 
 }
 
 /** The generated fallback, also used directly for combos the game never shipped. */
-export function UnitIconSvg({
-  icon,
-  faction,
-  size = 40,
-  muted = false,
-}: Omit<UnitIconProps, 'manifest'>) {
+export function UnitIconSvg({ icon, faction, size = 40, muted = false }: Omit<UnitIconProps, 'manifest'>) {
   const colour = muted ? 'var(--icon-muted)' : (FACTION_COLOURS[faction] ?? FACTION_COLOURS.Unknown);
   const shape = icon?.shape ?? 'land1';
   const shapePath = SHAPES[shape] ?? SHAPES.land1;

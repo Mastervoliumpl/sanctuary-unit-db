@@ -19,6 +19,6 @@ export function useMetaLine(): string {
       return () => listeners.delete(cb);
     },
     () => text,
-    () => ''
+    () => '',
   );
 }

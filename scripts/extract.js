@@ -177,8 +177,9 @@ function readAdjacencyBuffs(file) {
 
       const extra = Number(fields.match(/extra\s*=\s*(-?[\d.]+)/)?.[1]);
       const resource = fields.match(/resource\s*=\s*"(\w+)"/)?.[1];
-      const targets = [...(fields.match(/targetTags\s*=\s*([^\n]+)/)?.[1] ?? '').matchAll(/Tags\.(\w+)/g)]
-        .map((m) => m[1]);
+      const targets = [
+        ...(fields.match(/targetTags\s*=\s*([^\n]+)/)?.[1] ?? '').matchAll(/Tags\.(\w+)/g),
+      ].map((m) => m[1]);
 
       if (Number.isNaN(extra) || !resource) continue;
       effects.push({ category, resource, extra, targets });
@@ -378,9 +379,10 @@ function toUnit(t, id, available, models, adjacency) {
       : null,
     // Null rather than 0 when every damaging weapon has an unknown figure, so
     // the UI shows an em dash instead of claiming the unit deals no damage.
-    dps: weapons.length && weapons.every((w) => w.dpsTotal == null)
-      ? null
-      : round(weapons.reduce((sum, w) => sum + (w.dpsTotal ?? 0), 0)),
+    dps:
+      weapons.length && weapons.every((w) => w.dpsTotal == null)
+        ? null
+        : round(weapons.reduce((sum, w) => sum + (w.dpsTotal ?? 0), 0)),
     maxRange: weapons.length ? Math.max(...weapons.map((w) => w.rangeMax)) : 0,
     // The main weapon's travel speed. Ranked among weapons that actually fire a
     // projectile, so a unit whose top gun is a beam still reports its cannon
@@ -639,9 +641,20 @@ function groupWeapons(weapons) {
 
   for (const w of weapons) {
     const key = JSON.stringify([
-      w.damage, w.damageType, w.damageRadius, w.reloadTime, w.rangeMax, w.rangeMin,
-      w.isBeam, w.projectileSpeed, w.shotsPerCycle, w.category, w.targets,
-      w.traverseSpeed, w.elevationSpeed, w.traverseArc,
+      w.damage,
+      w.damageType,
+      w.damageRadius,
+      w.reloadTime,
+      w.rangeMax,
+      w.rangeMin,
+      w.isBeam,
+      w.projectileSpeed,
+      w.shotsPerCycle,
+      w.category,
+      w.targets,
+      w.traverseSpeed,
+      w.elevationSpeed,
+      w.traverseArc,
     ]);
     const existing = groups.get(key);
     if (existing) existing.count++;
@@ -657,7 +670,9 @@ function groupWeapons(weapons) {
 function mainWeapon(weapons) {
   return weapons
     .slice()
-    .sort((a, b) => (b.dpsTotal ?? 0) - (a.dpsTotal ?? 0) || b.rangeMax - a.rangeMax || b.damage - a.damage)[0];
+    .sort(
+      (a, b) => (b.dpsTotal ?? 0) - (a.dpsTotal ?? 0) || b.rangeMax - a.rangeMax || b.damage - a.damage,
+    )[0];
 }
 
 // Build lists are resolved by matching tag expressions, so a wrong faction tag
@@ -705,16 +720,14 @@ function resolveTier(tags, id) {
   const tech = tags.find((t) => /^TECH\d$/.test(t));
   const techTier = tech ? Number(tech.slice(4)) : null;
 
-  const buildTiers = tags
-    .filter((t) => /^BUILDABLE_BY_T\d/.test(t))
-    .map((t) => Number(t.match(/T(\d)/)[1]));
+  const buildTiers = tags.filter((t) => /^BUILDABLE_BY_T\d/.test(t)).map((t) => Number(t.match(/T(\d)/)[1]));
 
   if (techTier == null || !buildTiers.length) return techTier;
 
   const minBuildTier = Math.min(...buildTiers);
   if (techTier < minBuildTier) {
     issues.push(
-      `${id} is tagged TECH${techTier} but only a T${minBuildTier} builder can make it — using T${minBuildTier}`
+      `${id} is tagged TECH${techTier} but only a T${minBuildTier} builder can make it — using T${minBuildTier}`,
     );
     return minBuildTier;
   }
@@ -737,9 +750,7 @@ function report(units, failures, payload) {
   for (const f of failures) console.warn(`  ! ${f.id}: ${f.reason}`);
 
   const tally = (key) =>
-    Object.entries(
-      units.reduce((acc, u) => ((acc[u[key]] = (acc[u[key]] ?? 0) + 1), acc), {})
-    )
+    Object.entries(units.reduce((acc, u) => ((acc[u[key]] = (acc[u[key]] ?? 0) + 1), acc), {}))
       .map(([k, v]) => `${k} ${v}`)
       .join(', ');
 
@@ -749,10 +760,12 @@ function report(units, failures, payload) {
   console.log(
     `status:    ${byStatus('in-game')} in game, ` +
       `${byStatus('in-progress')} modelled but gated, ` +
-      `${byStatus('no-model')} no model`
+      `${byStatus('no-model')} no model`,
   );
-  console.log(`build tree: ${units.filter((u) => u.builds.length).length} builders, ` +
-    `${units.filter((u) => u.builtBy.length).length} units reachable`);
+  console.log(
+    `build tree: ${units.filter((u) => u.builds.length).length} builders, ` +
+      `${units.filter((u) => u.builtBy.length).length} units reachable`,
+  );
   console.log(`wrote:     ${path.relative(process.cwd(), OUT_FILE)} (${size} KB)`);
   if (payload.meta.isDemo) console.log('note:      demo build — balance values are not final');
 

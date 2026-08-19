@@ -1,9 +1,7 @@
 import type { Unit } from './types';
 
 export function fmt(n: number | null | undefined, digits = 2): string {
-  return n == null || Number.isNaN(n)
-    ? '—'
-    : n.toLocaleString('en-GB', { maximumFractionDigits: digits });
+  return n == null || Number.isNaN(n) ? '—' : n.toLocaleString('en-GB', { maximumFractionDigits: digits });
 }
 
 /** Seconds as a compact human duration — build times run from 1s to hours. */

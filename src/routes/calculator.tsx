@@ -9,7 +9,6 @@ import {
   buildable,
   econOptions,
   economyResult,
-  isEconomic,
   nameOf,
   packRows,
   primaryOptions,
@@ -90,7 +89,7 @@ function CalculatorPage() {
     setMetaLine(
       `${data.units.filter((u) => u.builtBy.length).length} buildable · ` +
         `${data.units.filter((u) => u.canAssist).length} can assist · ` +
-        `extracted ${new Date(data.meta.generatedAt).toLocaleDateString()}`
+        `extracted ${new Date(data.meta.generatedAt).toLocaleDateString()}`,
     );
   }, [data]);
 
@@ -130,7 +129,8 @@ function CalculatorPage() {
               // The valid builders change with the target, and the previous
               // pick may no longer be able to start this build.
               const nextTarget = byId.get(id);
-              const keepPrimary = primaryId && nextTarget?.builtBy.includes(primaryId) ? primaryId : undefined;
+              const keepPrimary =
+                primaryId && nextTarget?.builtBy.includes(primaryId) ? primaryId : undefined;
               patch({ t: id, p: keepPrimary });
             }}
           />
@@ -151,12 +151,26 @@ function CalculatorPage() {
           <label>
             Assisted by <span className="opt">optional</span>
           </label>
-          <RowList rows={assists} byId={byId} kind="assist" onBump={(i, d) => bumpRow('a', assists, i, d)} onDrop={(i) => dropRow('a', assists, i)} />
+          <RowList
+            rows={assists}
+            byId={byId}
+            kind="assist"
+            onBump={(i, d) => bumpRow('a', assists, i, d)}
+            onDrop={(i) => dropRow('a', assists, i)}
+          />
           <div className="add-row">
             <div className="grow">
-              <Combobox options={assistOpts} value={assistPick} placeholder="Search assisting units…" onPick={setAssistPick} />
+              <Combobox
+                options={assistOpts}
+                value={assistPick}
+                placeholder="Search assisting units…"
+                onPick={setAssistPick}
+              />
             </div>
-            <button type="button" onClick={() => addRow('a', assists, assistPick ?? assistOpts[0]?.value ?? null)}>
+            <button
+              type="button"
+              onClick={() => addRow('a', assists, assistPick ?? assistOpts[0]?.value ?? null)}
+            >
               Add
             </button>
           </div>
@@ -206,10 +220,21 @@ function CalculatorPage() {
 
       <section className="panel">
         <h2>Economy</h2>
-        <RowList rows={economy} byId={byId} kind="economy" onBump={(i, d) => bumpRow('e', economy, i, d)} onDrop={(i) => dropRow('e', economy, i)} />
+        <RowList
+          rows={economy}
+          byId={byId}
+          kind="economy"
+          onBump={(i, d) => bumpRow('e', economy, i, d)}
+          onDrop={(i) => dropRow('e', economy, i)}
+        />
         <div className="add-row">
           <div className="grow">
-            <Combobox options={econOpts} value={econPick} placeholder="Search structures…" onPick={setEconPick} />
+            <Combobox
+              options={econOpts}
+              value={econPick}
+              placeholder="Search structures…"
+              onPick={setEconPick}
+            />
           </div>
           <button type="button" onClick={() => addRow('e', economy, econPick ?? econOpts[0]?.value ?? null)}>
             Add structure
@@ -284,7 +309,12 @@ function RowList({
   onBump: (i: number, delta: number) => void;
   onDrop: (i: number) => void;
 }) {
-  if (!rows.length) return <div className="builders"><p className="empty-row">None added.</p></div>;
+  if (!rows.length)
+    return (
+      <div className="builders">
+        <p className="empty-row">None added.</p>
+      </div>
+    );
 
   const rates = (o: Record<string, number | undefined>) =>
     Object.entries(o)
@@ -369,7 +399,7 @@ function Verdict({
 
   const worst = Math.max(
     econ.alloysNet > 0 ? build.alloysPerSec / econ.alloysNet : Infinity,
-    econ.energyNet > 0 ? build.energyPerSec / econ.energyNet : Infinity
+    econ.energyNet > 0 ? build.energyPerSec / econ.energyNet : Infinity,
   );
   const real = worst > 1 ? build.seconds * worst : build.seconds;
   // With no income of a resource the build never finishes, which reads better

@@ -62,7 +62,7 @@ function main() {
       fs
         .readdirSync(path.join(OUT, slug(name)))
         .reduce((n, f) => n + fs.statSync(path.join(OUT, slug(name), f)).size, 0),
-    0
+    0,
   );
 
   console.log(`masters:   ${files.length} in icons-src/`);
@@ -88,14 +88,20 @@ function writePreviewManifest() {
   const ids = [];
   let blank = 0;
 
-  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.png')).sort()) {
+  for (const file of fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.png'))
+    .sort()) {
     const id = path.basename(file, '.png');
     let hasPixels = true;
     try {
       const { pixels } = decodePng(fs.readFileSync(path.join(dir, file)));
       hasPixels = false;
       for (let i = 3; i < pixels.length; i += 4) {
-        if (pixels[i] !== 0) { hasPixels = true; break; }
+        if (pixels[i] !== 0) {
+          hasPixels = true;
+          break;
+        }
       }
     } catch {
       // Unreadable here doesn't mean unusable in a browser — keep it.
@@ -169,7 +175,7 @@ function decodePng(buf) {
   // general decoder, fail loudly if that ever stops being true.
   if (header.depth !== 8 || header.colourType !== 6 || header.interlace !== 0) {
     throw new Error(
-      `unsupported PNG (depth ${header.depth}, colour type ${header.colourType}, interlace ${header.interlace})`
+      `unsupported PNG (depth ${header.depth}, colour type ${header.colourType}, interlace ${header.interlace})`,
     );
   }
 
@@ -232,8 +238,8 @@ function encodePng({ width, height, pixels }) {
     let noneScore = 0;
     let upScore = 0;
     for (let x = 0; x < stride; x++) {
-      noneScore += Math.abs(cur[x] << 24 >> 24);
-      upScore += Math.abs(((cur[x] - (prev ? prev[x] : 0)) & 255) << 24 >> 24);
+      noneScore += Math.abs((cur[x] << 24) >> 24);
+      upScore += Math.abs((((cur[x] - (prev ? prev[x] : 0)) & 255) << 24) >> 24);
     }
 
     if (prev && upScore < noneScore) {

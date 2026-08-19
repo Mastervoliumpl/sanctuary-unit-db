@@ -59,7 +59,15 @@ export function matches(unit: Unit, f: BoardFilters): boolean {
 
   if (f.search) {
     const q = f.search.toLowerCase();
-    const haystack = [unit.id, unit.name, unit.displayName, unit.role, unit.faction, unit.domain, ...unit.tags]
+    const haystack = [
+      unit.id,
+      unit.name,
+      unit.displayName,
+      unit.role,
+      unit.faction,
+      unit.domain,
+      ...unit.tags,
+    ]
       .filter(Boolean)
       .join(' ')
       .toLowerCase();

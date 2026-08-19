@@ -1,6 +1,6 @@
 # SanctuaryDB
 
-Tools for *Sanctuary: Shattered Sun*, generated directly from the game's own data
+Tools for _Sanctuary: Shattered Sun_, generated directly from the game's own data
 files. Currently two pages:
 
 - **/** — unit database: every unit with costs, stats, weapons and build trees
@@ -42,10 +42,10 @@ SANCTUARY_PATH="D:/SteamLibrary/steamapps/common/Sanctuary Shattered Sun Demo" n
 Routes are files in `src/routes/` (TanStack Router file-based routing); both
 are prerendered at build time and hydrate into an SPA.
 
-| Page | Route file | What it does |
-|---|---|---|
-| `/` | `src/routes/index.tsx` | Unit database — the aligned faction board |
-| `/calculator` | `src/routes/calculator.tsx` | Build time, drain and economy planning |
+| Page          | Route file                  | What it does                              |
+| ------------- | --------------------------- | ----------------------------------------- |
+| `/`           | `src/routes/index.tsx`      | Unit database — the aligned faction board |
+| `/calculator` | `src/routes/calculator.tsx` | Build time, drain and economy planning    |
 
 All UI state lives in the URL as typed search params — filters, sort, the open
 unit, the calculator setup — using the same param names and encoding as the
@@ -115,11 +115,11 @@ block with a regex instead of the table parser.
 
 29 units grant a buff, across six types:
 
-| Source | Effect |
-|---|---|
-| Alloy Extractor | −10% alloy build cost to adjacent factories / engineering stations |
-| T1/T2/T3 Energy Generator | −2.5% / −10% / −15% energy build cost, and the same off radar and shield upkeep |
-| T1 Alloy Storage, T1 Energy Storage | +20% storage to adjacent storage of the same kind |
+| Source                              | Effect                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| Alloy Extractor                     | −10% alloy build cost to adjacent factories / engineering stations              |
+| T1/T2/T3 Energy Generator           | −2.5% / −10% / −15% energy build cost, and the same off radar and shield upkeep |
+| T1 Alloy Storage, T1 Energy Storage | +20% storage to adjacent storage of the same kind                               |
 
 Several buffs defined in that file are wired to no unit at all (the alloy
 fabricators, T2/T3 storages), so they're dropped rather than advertised as live.
@@ -131,13 +131,13 @@ templates describe.
 **The install ships two complete Lua trees, and they disagree.** This caught me
 out, so read this before changing any path:
 
-| | `engine/LJ/lua` | `prototype/RuntimeContent/Lua` |
-|---|---|---|
-| Balance data | **newer** (Aug 12) | older (Jul 22, untouched since install) |
-| `availableUnits.lua` | 283 entries, `OK` / `NO_MODEL` / `OK_PENDING_APPROVAL` | 270 entries, freeform notes |
-| `canBuild` grammar | AND, **OR and parentheses** | AND only |
-| Maps | 93 | 0 (baked into `level0–10` scenes) |
-| Unit models / icons | **none** | all of them |
+|                      | `engine/LJ/lua`                                        | `prototype/RuntimeContent/Lua`          |
+| -------------------- | ------------------------------------------------------ | --------------------------------------- |
+| Balance data         | **newer** (Aug 12)                                     | older (Jul 22, untouched since install) |
+| `availableUnits.lua` | 283 entries, `OK` / `NO_MODEL` / `OK_PENDING_APPROVAL` | 270 entries, freeform notes             |
+| `canBuild` grammar   | AND, **OR and parentheses**                            | AND only                                |
+| Maps                 | 93                                                     | 0 (baked into `level0–10` scenes)       |
+| Unit models / icons  | **none**                                               | all of them                             |
 
 89 of 283 units differ on cost, health or build time — the Tempest is 3000 HP in
 one and 6000 in the other. The extractor reads **`engine`** for unit data and
@@ -146,11 +146,11 @@ takes art from **`prototype`**, which is the only place art exists. Set
 
 Under whichever tree, the files used are:
 
-| Path | What it gives us |
-|---|---|
-| `unitsTemplates/<id>/<id>.santp` | One file per unit — cost, health, weapons, movement, tags |
-| `availableUnits.lua` | QA sign-off status per unit, with reason codes (engine tree only) |
-| `templateExplainations.lua` | The devs' own annotated schema, including the build-time formula |
+| Path                             | What it gives us                                                  |
+| -------------------------------- | ----------------------------------------------------------------- |
+| `unitsTemplates/<id>/<id>.santp` | One file per unit — cost, health, weapons, movement, tags         |
+| `availableUnits.lua`             | QA sign-off status per unit, with reason codes (engine tree only) |
+| `templateExplainations.lua`      | The devs' own annotated schema, including the build-time formula  |
 
 Every `.santp` is a pure Lua table literal — no functions, requires or
 conditionals — so `scripts/lua-parser.js` reads them directly. All 283 templates
@@ -201,7 +201,7 @@ DPS         = (damage * muzzleCount + damageOverTimePulses) / cycleTime
    over 1 group fires that group 20 times a cycle. Capping at the group count
    put Quasar at 18.75 DPS instead of 362.1.
 3. **`muzzleSalvoDelay` stretches the cycle** past `reloadTime` alone — that
-   pulls most multi-barrel units *down*, e.g. Kodiak 348.63 to 316.93.
+   pulls most multi-barrel units _down_, e.g. Kodiak 348.63 to 316.93.
 4. **`damageOverTimePulseCount x damageOverTimePulseDamage`** adds to the
    numerator.
 
@@ -234,16 +234,16 @@ string scan, no asset tooling. That's the `hasModel` field.
 live QA tracker, not the stale list the prototype tree carries. Its reason codes
 line up with the shipped art almost exactly:
 
-| Reason | Count | Have art |
-|---|---|---|
-| `OK` / true | 140 | 140 |
-| `OK_PENDING_APPROVAL` / false | 64 | 64 |
-| `NO_MODEL` / false | 61 | 5 |
-| `OK` / false | 9 | 9 |
-| `BONE_MISSMATCH` / false | 7 | 7 |
-| `BATTLE_NO_DAMAGE` / false | 1 | 1 |
+| Reason                        | Count | Have art |
+| ----------------------------- | ----- | -------- |
+| `OK` / true                   | 140   | 140      |
+| `OK_PENDING_APPROVAL` / false | 64    | 64       |
+| `NO_MODEL` / false            | 61    | 5        |
+| `OK` / false                  | 9     | 9        |
+| `BONE_MISSMATCH` / false      | 7     | 7        |
+| `BATTLE_NO_DAMAGE` / false    | 1     | 1        |
 
-So the boolean means *"signed off and enabled"*, not *"exists"* — the non-`OK`
+So the boolean means _"signed off and enabled"_, not _"exists"_ — the non-`OK`
 codes describe units that are modelled but gated. Crossing the two gives:
 
 - **`in-game`** (140) — has art, signed off and enabled
@@ -255,7 +255,7 @@ The Availability filter defaults to `in-game`. In-progress units keep their
 faction colour and carry a `WIP` tag with the reason on hover, since they have
 real art and real numbers — only `no-model` units are dimmed.
 
-Note the prototype tree's copy of this file is *not* usable this way: it uses
+Note the prototype tree's copy of this file is _not_ usable this way: it uses
 freeform notes that contradict themselves (`ugl2002 = false, -- model exist`).
 The three-way split only works against the engine tree.
 
@@ -269,7 +269,7 @@ worth knowing before touching anything weapon-related.
 The top-level `weapons` array is current. `turrets` is legacy:
 
 - `templateExplainations.lua:376` opens a section commented `-- Old format, still
-  have some leftover stuff`, and `turrets` (line 414) is inside it.
+have some leftover stuff`, and `turrets` (line 414) is inside it.
 - The same file documents the current schema with LuaLS annotations —
   `---@class WeaponTemplate` and `---@field weapons WeaponTemplate[]?`.
 - `templateUpdater.lua` has `UpdateWeaponFormat`, a migration that builds
@@ -285,9 +285,9 @@ format at all, and several units including two Commanders have `weapons` with no
 
 **Turn rates.** Two separate things, both surfaced:
 
-- *Unit* turn rate is `movement.rotationSpeed`, in degrees per second (10–300
+- _Unit_ turn rate is `movement.rotationSpeed`, in degrees per second (10–300
   across the roster).
-- *Weapon* turn rate comes from `aimControllers`, split by axis: controllers
+- _Weapon_ turn rate comes from `aimControllers`, split by axis: controllers
   bound to a `yawBone` traverse, those bound to a `pitchBone` elevate. Most
   common speed per axis wins, same tie-break as projectile speed. Range is
   5–360°/s. Deliberately **not** `turrets[].turnRateDegreesPerSecond`, which is
@@ -331,8 +331,8 @@ Two exclusions:
 - **The T1 Bomber** declares `0.0001`, meaning the bomb drops under gravity. Every
   genuine speed in the data is ≥ 5, so anything below 1 is treated as absent.
 
-The unit-level `projectileSpeed` is the main weapon's, ranked by DPS *among
-weapons that actually fire a projectile* — so a unit whose highest-DPS weapon is
+The unit-level `projectileSpeed` is the main weapon's, ranked by DPS _among
+weapons that actually fire a projectile_ — so a unit whose highest-DPS weapon is
 a beam still reports its cannon rather than nothing. Both the cards and the
 detail panel list every weapon separately, so nothing is hidden behind that pick.
 
@@ -347,7 +347,7 @@ into a separate `deathExplosion` field and excluded from DPS and range.
 Tags.EDA * Tags.BUILDABLE_BY_T1_FACTORY * ((Tags.LAND * Tags.MOBILE) + Tags.LAND_FACTORY)
 ```
 
-A land factory builds EDA land units *or* another land factory — that second
+A land factory builds EDA land units _or_ another land factory — that second
 branch is the upgrade chain. 27 of the 69 expressions use the OR form, and they
 only appear in the `engine` tree; `prototype` uses AND alone. Splitting on `*`
 parses them into nonsense and costs ~90 units their builders, so this is a real

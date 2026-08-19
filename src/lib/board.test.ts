@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { buildGroups, matches, visibleGroups, DEFAULT_STATUS, type BoardFilters } from './board';
-import type { Unit, UnitsData } from './types';
+import type { UnitsData } from './types';
 
 // Tests run against the committed units.json — the same file the site serves —
 // so they double as regression tests for the extractor's output. The pinned
 // numbers come from the README's worked examples; if a re-extract changes
 // them, that's a real balance change (fine, update the pin) or an extractor
 // regression (the thing these exist to catch).
-const data: UnitsData = JSON.parse(readFileSync(new URL('../../public/data/units.json', import.meta.url), 'utf8'));
+const data: UnitsData = JSON.parse(
+  readFileSync(new URL('../../public/data/units.json', import.meta.url), 'utf8'),
+);
 const byId = new Map(data.units.map((u) => [u.id, u]));
 
 const noFilters: BoardFilters = {

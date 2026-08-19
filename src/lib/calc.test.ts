@@ -4,7 +4,9 @@ import { buildResult, economyResult, packRows, unpackRows } from './calc';
 import { duration } from './format';
 import type { UnitsData } from './types';
 
-const data: UnitsData = JSON.parse(readFileSync(new URL('../../public/data/units.json', import.meta.url), 'utf8'));
+const data: UnitsData = JSON.parse(
+  readFileSync(new URL('../../public/data/units.json', import.meta.url), 'utf8'),
+);
 const byId = new Map(data.units.map((u) => [u.id, u]));
 
 describe('build maths', () => {

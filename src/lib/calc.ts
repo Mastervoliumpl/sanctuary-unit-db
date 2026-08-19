@@ -55,7 +55,7 @@ export const primaryOptions = (target: Unit | undefined, byId: Map<string, Unit>
         target.builtBy
           .map((id) => byId.get(id))
           .filter((u): u is Unit => Boolean(u))
-          .map((u) => toOption(u, power))
+          .map((u) => toOption(u, power)),
       )
     : [];
 
@@ -81,14 +81,11 @@ export function buildResult(
   target: Unit | undefined,
   primary: Unit | undefined,
   assists: CountedRow[],
-  byId: Map<string, Unit>
+  byId: Map<string, Unit>,
 ): BuildResult | null {
   if (!target || !primary) return null;
 
-  const assistPower = assists.reduce(
-    (sum, row) => sum + (byId.get(row.id)?.buildPower ?? 0) * row.count,
-    0
-  );
+  const assistPower = assists.reduce((sum, row) => sum + (byId.get(row.id)?.buildPower ?? 0) * row.count, 0);
   const total = (primary.buildPower ?? 0) + assistPower;
   if (total <= 0) return null;
 

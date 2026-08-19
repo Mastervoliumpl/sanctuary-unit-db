@@ -20,7 +20,7 @@ export function Header() {
     const publish = () =>
       document.documentElement.style.setProperty(
         '--header-h',
-        `${Math.round(header.getBoundingClientRect().height)}px`
+        `${Math.round(header.getBoundingClientRect().height)}px`,
       );
 
     publish();
@@ -38,10 +38,20 @@ export function Header() {
         <p className="sub">{metaLine}</p>
       </div>
       <nav className="nav">
-        <Link to="/" className="navlink" activeOptions={{ exact: true, includeSearch: false }} activeProps={{ className: 'navlink active' }}>
+        <Link
+          to="/"
+          className="navlink"
+          activeOptions={{ exact: true, includeSearch: false }}
+          activeProps={{ className: 'navlink active' }}
+        >
           Units
         </Link>
-        <Link to="/calculator" className="navlink" activeOptions={{ includeSearch: false }} activeProps={{ className: 'navlink active' }}>
+        <Link
+          to="/calculator"
+          className="navlink"
+          activeOptions={{ includeSearch: false }}
+          activeProps={{ className: 'navlink active' }}
+        >
           Calculator
         </Link>
       </nav>

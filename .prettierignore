@@ -1,0 +1,8 @@
+dist/
+node_modules/
+public/
+icons-src/
+package-lock.json
+src/routeTree.gen.ts
+test-results/
+playwright-report/

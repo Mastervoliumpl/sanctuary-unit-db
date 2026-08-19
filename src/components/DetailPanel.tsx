@@ -20,7 +20,13 @@ export function DetailPanel({ unit: u, loaded, onOpen, onClose }: DetailPanelPro
     <>
       <aside className="detail" aria-live="polite">
         <div className="detail-head">
-          <UnitIcon icon={u.icon} faction={u.faction} manifest={iconManifest} size={52} muted={u.status === 'no-model'} />
+          <UnitIcon
+            icon={u.icon}
+            faction={u.faction}
+            manifest={iconManifest}
+            size={52}
+            muted={u.status === 'no-model'}
+          />
           <div>
             <h2>{u.name ?? shortName(u)}</h2>
             <div className="sub2">
@@ -36,7 +42,13 @@ export function DetailPanel({ unit: u, loaded, onOpen, onClose }: DetailPanelPro
             size shipped and it reads far better than an icon at this size. */}
         {previews.has(u.id) && (
           <div className="preview" style={{ '--fc': FACTION_COLOURS[u.faction] } as React.CSSProperties}>
-            <img src={`/previews/${u.id}.png`} alt={u.name ?? u.displayName} width={132} height={132} decoding="async" />
+            <img
+              src={`/previews/${u.id}.png`}
+              alt={u.name ?? u.displayName}
+              width={132}
+              height={132}
+              decoding="async"
+            />
           </div>
         )}
 
@@ -162,13 +174,16 @@ function AdjacencySection({ unit: u }: { unit: Unit }) {
                   {e.percent < 0 ? '' : '+'}
                   {e.percent}%
                 </strong>{' '}
-                {e.resource} · to adjacent {e.targets.map((t) => t.replace(/_/g, ' ').toLowerCase()).join(' or ')}
+                {e.resource} · to adjacent{' '}
+                {e.targets.map((t) => t.replace(/_/g, ' ').toLowerCase()).join(' or ')}
               </>
             }
           />
         ))}
       </dl>
-      <p className="hint">Applies to structures built directly against this one, and stacks per adjacent source.</p>
+      <p className="hint">
+        Applies to structures built directly against this one, and stacks per adjacent source.
+      </p>
     </Section>
   );
 }
@@ -228,7 +243,10 @@ function WeaponBlock({ weapon: w }: { weapon: Weapon }) {
         {w.dpsTotal != null ? (
           <span className="wdps">{fmt(w.dpsTotal)} dps</span>
         ) : (
-          <span className="wdps" title="The template declares no muzzle bones, so the game scores this weapon zero">
+          <span
+            className="wdps"
+            title="The template declares no muzzle bones, so the game scores this weapon zero"
+          >
             dps unknown
           </span>
         )}
@@ -307,7 +325,13 @@ function BuildSection({
         if (!t) return null;
         return (
           <button type="button" className="unit-link" key={id} onClick={() => onOpen(id)}>
-            <UnitIcon icon={t.icon} faction={t.faction} manifest={iconManifest} size={20} muted={t.status === 'no-model'} />
+            <UnitIcon
+              icon={t.icon}
+              faction={t.faction}
+              manifest={iconManifest}
+              size={20}
+              muted={t.status === 'no-model'}
+            />
             {builderName(t)}
           </button>
         );

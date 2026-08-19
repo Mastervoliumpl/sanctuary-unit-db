@@ -34,7 +34,7 @@ export function locateGame() {
 
   throw new Error(
     'Could not find the game. Set SANCTUARY_PATH to the install directory, e.g.\n' +
-      '  SANCTUARY_PATH="D:/SteamLibrary/steamapps/common/Sanctuary Shattered Sun Demo"'
+      '  SANCTUARY_PATH="D:/SteamLibrary/steamapps/common/Sanctuary Shattered Sun Demo"',
   );
 }
 
@@ -88,6 +88,6 @@ export function contentRoot(gameDir) {
 
   throw new Error(
     `No unit templates found under ${gameDir}. Looked in:\n` +
-      order.map((t) => `  ${path.join(gameDir, TREES[t])}`).join('\n')
+      order.map((t) => `  ${path.join(gameDir, TREES[t])}`).join('\n'),
   );
 }

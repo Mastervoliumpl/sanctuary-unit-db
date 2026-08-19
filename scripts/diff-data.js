@@ -16,8 +16,17 @@ const REL = 'public/data/units.json';
 
 // Fields worth calling out by name; everything else folds into a count.
 const HEADLINE = [
-  'name', 'displayName', 'status', 'tier', 'health', 'buildTime', 'dps',
-  'maxRange', 'buildPower', 'cost.alloys', 'cost.energy',
+  'name',
+  'displayName',
+  'status',
+  'tier',
+  'health',
+  'buildTime',
+  'dps',
+  'maxRange',
+  'buildPower',
+  'cost.alloys',
+  'cost.energy',
 ];
 
 function main() {
@@ -26,7 +35,11 @@ function main() {
   let committed;
   try {
     committed = JSON.parse(
-      execFileSync('git', ['show', `HEAD:${REL}`], { cwd: ROOT, maxBuffer: 64 * 1024 * 1024, encoding: 'utf8' })
+      execFileSync('git', ['show', `HEAD:${REL}`], {
+        cwd: ROOT,
+        maxBuffer: 64 * 1024 * 1024,
+        encoding: 'utf8',
+      }),
     );
   } catch {
     console.log('No committed units.json to compare against (first extract?) — skipping diff.');
@@ -52,7 +65,9 @@ function main() {
     return;
   }
 
-  console.log(`units.json vs HEAD (${committed.meta?.generatedAt?.slice(0, 10) ?? '?'} → ${current.meta?.generatedAt?.slice(0, 10) ?? '?'}):\n`);
+  console.log(
+    `units.json vs HEAD (${committed.meta?.generatedAt?.slice(0, 10) ?? '?'} → ${current.meta?.generatedAt?.slice(0, 10) ?? '?'}):\n`,
+  );
 
   if (added.length) {
     console.log(`  ${added.length} added:`);
@@ -75,7 +90,9 @@ function main() {
   // A sanity line for spotting extractor regressions: a real patch touches a
   // slice of the roster; the extractor breaking tends to touch all of it.
   const touched = added.length + removed.length + changed.length;
-  console.log(`\n  ${touched}/${after.size} units differ. If that looks like "everything", suspect the extractor before the patch notes.`);
+  console.log(
+    `\n  ${touched}/${after.size} units differ. If that looks like "everything", suspect the extractor before the patch notes.`,
+  );
 }
 
 function label(u) {
@@ -114,6 +131,11 @@ function strip(u) {
 }
 
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
-const fmt = (v) => (v == null ? '∅' : typeof v === 'number' ? v.toLocaleString('en-GB', { maximumFractionDigits: 2 }) : String(v));
+const fmt = (v) =>
+  v == null
+    ? '∅'
+    : typeof v === 'number'
+      ? v.toLocaleString('en-GB', { maximumFractionDigits: 2 })
+      : String(v);
 
 main();

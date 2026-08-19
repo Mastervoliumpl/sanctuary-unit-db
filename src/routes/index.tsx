@@ -91,7 +91,7 @@ function BoardPage() {
       status: statusToSet(search.status),
       search: search.q ?? '',
     }),
-    [search]
+    [search],
   );
   const sort: SortKey = search.sort ?? 'default';
 
@@ -106,7 +106,7 @@ function BoardPage() {
       `${data.meta.unitCount} units · ` +
         `${data.units.filter((u) => u.status === 'in-game').length} in game, ` +
         `${data.units.filter((u) => u.status === 'in-progress').length} in progress · ` +
-        `extracted ${new Date(data.meta.generatedAt).toLocaleDateString()}`
+        `extracted ${new Date(data.meta.generatedAt).toLocaleDateString()}`,
     );
   }, [loaded]);
 
@@ -171,7 +171,9 @@ function BoardPage() {
               Order
               <select
                 value={sort}
-                onChange={(e) => patch({ sort: e.target.value === 'default' ? undefined : (e.target.value as SortKey) })}
+                onChange={(e) =>
+                  patch({ sort: e.target.value === 'default' ? undefined : (e.target.value as SortKey) })
+                }
               >
                 <option value="default">Tech tree</option>
                 <option value="alloys">Alloys</option>
@@ -188,7 +190,13 @@ function BoardPage() {
           {visible.length === 0 ? (
             <p className="empty">No units match those filters.</p>
           ) : (
-            <Board groups={visible} factions={factions} sort={sort} iconManifest={loaded.iconManifest} onOpen={openDetail} />
+            <Board
+              groups={visible}
+              factions={factions}
+              sort={sort}
+              iconManifest={loaded.iconManifest}
+              onOpen={openDetail}
+            />
           )}
         </section>
       </main>
@@ -219,7 +227,9 @@ function FilterSidebar({
       {
         key: 'tier' as const,
         title: 'Tier',
-        values: distinct((u) => u.tier).sort((a, b) => a - b).map(String),
+        values: distinct((u) => u.tier)
+          .sort((a, b) => a - b)
+          .map(String),
         label: (v: string) => `T${v}`,
       },
       { key: 'role' as const, title: 'Role', values: distinct((u) => u.role).sort() as string[] },
@@ -278,7 +288,15 @@ function Board({
   onOpen: (id: string) => void;
 }) {
   const cols = { '--cols': factions.length } as React.CSSProperties;
-  let lastDomain: string | null = null;
+
+  // Domain headings are only meaningful while in tech-tree order; a metric
+  // sort mixes domains. Derived from the previous row, no render-time state.
+  const headingFor = (i: number): string | null => {
+    if (sort !== 'default') return null;
+    const domain = groups[i].domain;
+    if (i > 0 && groups[i - 1].domain === domain) return null;
+    return DOMAIN_NAMES[domain] ?? domain;
+  };
 
   return (
     <div className="board">
@@ -289,14 +307,8 @@ function Board({
           </div>
         ))}
       </div>
-      {groups.map((group) => {
-        // Domain headings are only meaningful while in tech-tree order; a
-        // metric sort mixes domains.
-        let heading: string | null = null;
-        if (sort === 'default' && group.domain !== lastDomain) {
-          lastDomain = group.domain;
-          heading = DOMAIN_NAMES[group.domain] ?? group.domain;
-        }
+      {groups.map((group, i) => {
+        const heading = headingFor(i);
 
         return (
           <div key={group.key} style={{ display: 'contents' }}>

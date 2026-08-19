@@ -17,24 +17,29 @@ interface ComboboxProps {
   empty?: string;
 }
 
-export function Combobox({ options, value, onPick, placeholder = 'Type to search…', empty = 'No matches' }: ComboboxProps) {
+export function Combobox({
+  options,
+  value,
+  onPick,
+  placeholder = 'Type to search…',
+  empty = 'No matches',
+}: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
-  const [text, setText] = useState('');
+  // Only meaningful while open; while closed the input *derives* its text from
+  // the selection, so outside changes (a new target swapping the builder list)
+  // show up without any state syncing.
+  const [draft, setDraft] = useState('');
   const mount = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const selectedLabel = options.find((o) => o.value === value)?.label ?? '';
-
-  // While closed the input mirrors the selection, including when the selection
-  // or the option list changes from outside (a new target changes the builders).
-  useEffect(() => {
-    if (!open) setText(selectedLabel);
-  }, [open, selectedLabel]);
+  const text = open ? draft : selectedLabel;
 
   const q = text.trim().toLowerCase();
   // An untouched field shows everything, so opening it behaves like a select.
-  const rows = !q || q === selectedLabel.toLowerCase() ? options : options.filter((o) => o.search.includes(q));
+  const rows =
+    !q || q === selectedLabel.toLowerCase() ? options : options.filter((o) => o.search.includes(q));
   const activeIdx = Math.min(active, rows.length - 1);
 
   useEffect(() => {
@@ -69,7 +74,6 @@ export function Combobox({ options, value, onPick, placeholder = 'Type to search
       if (chosen) pick(chosen.value);
     } else if (e.key === 'Escape') {
       setOpen(false);
-      setText(selectedLabel);
       (e.target as HTMLInputElement).blur();
     }
   };
@@ -87,11 +91,12 @@ export function Combobox({ options, value, onPick, placeholder = 'Type to search
         value={text}
         onFocus={(e) => {
           e.target.select();
+          setDraft(selectedLabel);
           setOpen(true);
           setActive(-1);
         }}
         onChange={(e) => {
-          setText(e.target.value);
+          setDraft(e.target.value);
           setOpen(true);
           setActive(0);
         }}
