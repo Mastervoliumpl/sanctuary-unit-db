@@ -11,9 +11,10 @@
     "typecheck": "tsc --noEmit",
     "extract": "node scripts/extract.js",
     "icons": "node scripts/build-icons.js",
-    "refresh": "npm run extract && npm run icons",
+    "refresh": "npm run extract && npm run icons && npm run diff",
     "verify": "node scripts/verify.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "diff": "node scripts/diff-data.js"
   },
   "engines": {
     "node": ">=22.12"
