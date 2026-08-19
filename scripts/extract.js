@@ -333,6 +333,14 @@ function toUnit(t, id, available, models, adjacency) {
     })),
 
     buildPower: t.construction?.buildPower ?? null,
+    // Orders the unit can be given. Assist matters for the calculator: any
+    // assist-capable builder can pour its build power into someone else's
+    // build, even one it could not have started itself.
+    orders: Object.entries(t.general?.orders ?? {})
+      .filter(([, on]) => on)
+      .map(([name]) => name)
+      .sort(),
+    canAssist: t.general?.orders?.Assist === true,
     canBuildExpr: t.construction?.canBuild ?? null,
     upgradesTo: t.construction?.upgradesTo ?? null,
     // Filled in by resolveBuildTrees once every unit is known.

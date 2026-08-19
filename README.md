@@ -59,6 +59,20 @@ So three T2 engineers (10 build power each) on a T3 Land Factory — 4,200 build
 time, 2,000 alloys, 20,000 energy — take 140s and draw 14.29 alloys/s and 142.86
 energy/s.
 
+**Who can build what is not a free choice.** Every unit carries a `builtBy` list,
+resolved from the builders' `canBuild` tag expressions, so a T1 air factory
+cannot start a T4 bot — the Ares can only be begun by a Chosen T3 Engineer or T3
+Engineering Station. The builder picker is limited to that list and re-checks
+itself whenever the target changes, including when restoring from a URL.
+
+Assisting is a separate pool. Any unit with the `Assist` order and build power
+can pour into someone else's build — 171 units can assist, 64 of them have build
+power — including builds it could never have started itself, so those come from
+their own list and simply add their build power to the total.
+
+Both pickers are filter-as-you-type comboboxes (`shared/combo.js`); a plain
+select over a couple of hundred units is unusable.
+
 The economy panel sums `production`, `maintenanceConsumption` and `storage`
 across a set of structures. Those values are already per second in the templates
 (`resourceEntity.lua` divides them by `Constants.TickRate` internally).

@@ -22,16 +22,22 @@
     </p>
 
     <div class="field">
-      <label for="target">Building</label>
-      <select id="target"></select>
+      <label for="target-input">Building</label>
+      <div id="target"></div>
     </div>
 
     <div class="field">
-      <label>Builders</label>
-      <div id="builders" class="builders"></div>
+      <label for="primary-input">Built by</label>
+      <div id="primary"></div>
+      <p class="note" id="primary-note"></p>
+    </div>
+
+    <div class="field">
+      <label>Assisted by <span class="opt">optional</span></label>
+      <div id="assists" class="builders"></div>
       <div class="add-row">
-        <select id="builder-pick"></select>
-        <button type="button" id="builder-add">Add builder</button>
+        <div id="assist-pick" class="grow"></div>
+        <button type="button" id="assist-add">Add</button>
       </div>
     </div>
 
@@ -47,7 +53,7 @@
 
     <div id="economy" class="builders"></div>
     <div class="add-row">
-      <select id="econ-pick"></select>
+      <div id="econ-pick" class="grow"></div>
       <button type="button" id="econ-add">Add structure</button>
     </div>
 

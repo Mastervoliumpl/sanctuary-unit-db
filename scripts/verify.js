@@ -21,7 +21,7 @@ const exists = (rel) => fs.existsSync(path.join(PUBLIC, rel));
 function main() {
   for (const file of [
     'index.html', 'app.js', 'icons.js', 'styles.css',
-    'shared/nav.js', 'calculator/index.html', 'calculator/calc.js',
+    'shared/nav.js', 'shared/combo.js', 'calculator/index.html', 'calculator/calc.js',
   ]) {
     if (!exists(file)) fail(`missing ${file}`);
   }
