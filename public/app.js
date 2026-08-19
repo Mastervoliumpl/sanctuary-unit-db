@@ -119,23 +119,61 @@ function matches(unit) {
 // Template ids are u<faction><domain><code>, so uel1001 / ucl1001 / ugl1001 are
 // the same slot in each faction's roster. Dropping the faction letter gives a
 // key that lines equivalent units up across columns — Puma / Gladius / Gimlet.
+//
+// The id numbering is *nearly* tier-aligned, but not reliably: uel3002 "Hyena"
+// is TECH2 (internally EDAT2FastUnit2 — EDA's second T2 raider) despite the 3,
+// and uga3011 "TALEN" is TECH1. Grouping on the id alone therefore stranded
+// Hyena in the T3 row, away from the other T2 raiders.
+//
+// So: bucket by id slot, split any slot spanning several tiers, then merge
+// buckets that agree on domain, tier and label. Grouping purely by label
+// instead would fix the raiders but shatter the slots where factions diverge in
+// purpose — the 2806 row (repair station / shield booster / transmitter) would
+// become nine single-faction rows instead of three aligned ones.
 function buildGroups(units) {
-  const groups = new Map();
-
+  const slots = new Map();
   for (const unit of units) {
     const key = unit.id[2] + unit.id.slice(3);
-    if (!groups.has(key)) {
-      groups.set(key, { key, domain: key[0], code: key.slice(1), units: [], byFaction: {} });
-    }
-    const group = groups.get(key);
-    group.units.push(unit);
-    (group.byFaction[unit.faction] ??= []).push(unit);
+    (slots.get(key) ?? slots.set(key, []).get(key)).push(unit);
   }
 
+  // Split slots whose members disagree on tier — they aren't equivalents.
+  const parts = [];
+  for (const members of slots.values()) {
+    const tiers = [...new Set(members.map((u) => u.tier))];
+    if (tiers.length <= 1) parts.push(members);
+    else for (const tier of tiers) parts.push(members.filter((u) => u.tier === tier));
+  }
+
+  const groups = new Map();
+  for (const members of parts) {
+    const first = members[0];
+    const label = commonLabel(members);
+    const key = `${first.id[2]}|${first.tier}|${label.toLowerCase()}`;
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        domain: first.id[2],
+        tier: first.tier ?? 0,
+        label,
+        role: members.find((u) => u.role)?.role ?? null,
+        units: [],
+        byFaction: {},
+      });
+    }
+    const group = groups.get(key);
+    for (const unit of members) {
+      group.units.push(unit);
+      (group.byFaction[unit.faction] ??= []).push(unit);
+    }
+  }
+
+  // Order rows by the lowest id code they contain, so merged rows land where
+  // the earlier of their slots used to sit.
   for (const group of groups.values()) {
-    group.tier = group.units.find((u) => u.tier)?.tier ?? 0;
-    group.label = commonLabel(group.units);
-    group.role = group.units.find((u) => u.role)?.role ?? null;
+    group.code = group.units.map((u) => u.id.slice(3)).sort()[0];
+    group.role ??= group.units.find((u) => u.role)?.role ?? null;
   }
 
   return [...groups.values()].sort(byTechTree);
