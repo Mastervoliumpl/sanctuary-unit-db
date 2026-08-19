@@ -14,7 +14,8 @@
     "refresh": "npm run extract && npm run icons && npm run diff",
     "verify": "node scripts/verify.js",
     "test": "vitest run",
-    "diff": "node scripts/diff-data.js"
+    "diff": "node scripts/diff-data.js",
+    "test:e2e": "playwright test"
   },
   "engines": {
     "node": ">=22.12"
@@ -26,10 +27,12 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
+    "serve": "^14.2.6",
     "typescript": "^5.9.3",
     "vite": "^8.2.1",
     "vitest": "^4.1.11"
