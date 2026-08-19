@@ -225,7 +225,7 @@ function toUnit(t, id, available, models) {
     displayName: general.displayName ?? '',
     faction: FACTIONS[id[1]] ?? 'Unknown',
     domain: DOMAINS[id[2]] ?? 'Unknown',
-    tier: tierOf(tags),
+    tier: resolveTier(tags, id),
     role: ROLES[general.icon?.symbol] ?? null,
     icon: {
       shape: general.icon?.shape ?? null,
@@ -600,9 +600,36 @@ function normaliseFactionTag(tags, id) {
   return [...tags.filter((t) => !ALL_FACTION_TAGS.has(t)), expected].sort();
 }
 
-function tierOf(tags) {
-  const tag = tags.find((t) => /^TECH\d$/.test(t));
-  return tag ? Number(tag.slice(4)) : null;
+// A unit's tier is its TECH tag, cross-checked against the tiers that can build
+// it. Units are routinely buildable one tier *below* their own — T4s come out of
+// T3 engineers, T2 factories are built by T1 engineers — so a lower buildable
+// tier is normal and expected (38 units).
+//
+// The reverse is contradictory: nothing can be TECH1 while only a T3 factory can
+// make it. Exactly one unit trips this — uga3011 "TALEN", tagged TECH1 but
+// buildable only from the T3 Air Factory. Everything else about it says T3: it
+// costs 900 alloys / 18,000 energy / 6,000 hp, identical to the confirmed T3
+// gunship Hornet and roughly 13x the real Guard T1 gunship CRISPR. Its internal
+// name even collides with CRISPR's ("GuardT1Gunship"), which is the copy-paste
+// that produced the wrong tag.
+function resolveTier(tags, id) {
+  const tech = tags.find((t) => /^TECH\d$/.test(t));
+  const techTier = tech ? Number(tech.slice(4)) : null;
+
+  const buildTiers = tags
+    .filter((t) => /^BUILDABLE_BY_T\d/.test(t))
+    .map((t) => Number(t.match(/T(\d)/)[1]));
+
+  if (techTier == null || !buildTiers.length) return techTier;
+
+  const minBuildTier = Math.min(...buildTiers);
+  if (techTier < minBuildTier) {
+    issues.push(
+      `${id} is tagged TECH${techTier} but only a T${minBuildTier} builder can make it — using T${minBuildTier}`
+    );
+    return minBuildTier;
+  }
+  return techTier;
 }
 
 function nonEmpty(obj) {
