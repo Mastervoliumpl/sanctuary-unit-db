@@ -333,14 +333,18 @@ function toUnit(t, id, available, models, adjacency) {
     })),
 
     buildPower: t.construction?.buildPower ?? null,
-    // Orders the unit can be given. Assist matters for the calculator: any
-    // assist-capable builder can pour its build power into someone else's
-    // build, even one it could not have started itself.
+    // Reach for building, repairing and assisting. This — not the Assist order
+    // — is what decides whether a unit can help with someone else's build: a
+    // factory has build power but no range, so it can only work its own queue.
+    // 22 units have a range (commanders, engineers, engineering stations);
+    // 42 of the 60 without one still claim Assist in their orders, so that flag
+    // on its own would let a factory assist a factory.
+    buildRange: t.construction?.range ?? null,
     orders: Object.entries(t.general?.orders ?? {})
       .filter(([, on]) => on)
       .map(([name]) => name)
       .sort(),
-    canAssist: t.general?.orders?.Assist === true,
+    canAssist: (t.construction?.range ?? 0) > 0 && t.general?.orders?.Assist === true,
     canBuildExpr: t.construction?.canBuild ?? null,
     upgradesTo: t.construction?.upgradesTo ?? null,
     // Filled in by resolveBuildTrees once every unit is known.

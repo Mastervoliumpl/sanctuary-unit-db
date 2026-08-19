@@ -39,7 +39,7 @@ async function init() {
 
   setMetaLine(
     `${data.units.filter((u) => u.builtBy.length).length} buildable · ` +
-      `${data.units.filter((u) => u.canAssist && u.buildPower > 0).length} can assist · ` +
+      `${data.units.filter((u) => u.canAssist).length} can assist · ` +
       `extracted ${new Date(data.meta.generatedAt).toLocaleDateString()}`
   );
 
@@ -177,26 +177,12 @@ function mountCombos() {
 /* ---------------- rendering ---------------- */
 
 function render() {
-  renderPrimaryNote();
   renderRows('#assists', state.assists, 'assist');
   renderRows('#economy', state.economy, 'economy');
   renderBuild();
   renderEconomy();
   renderVerdict();
   save();
-}
-
-function renderPrimaryNote() {
-  const target = state.byId.get(state.target);
-  const el = $('#primary-note');
-  if (!target) return (el.textContent = '');
-
-  const n = target.builtBy.length;
-  el.innerHTML = n
-    ? `Only <strong>${n}</strong> ${n === 1 ? 'unit' : 'units'} can start a ${
-        target.name ?? target.displayName
-      } — the list is limited to those.`
-    : `Nothing in the game can build this.`;
 }
 
 function renderRows(sel, rows, kind) {
@@ -299,12 +285,15 @@ function renderVerdict() {
     e.energyNet > 0 ? b.energyPerSec / e.energyNet : Infinity
   );
   const real = worst > 1 ? b.seconds * worst : b.seconds;
+  // With no income of a resource the build never finishes, which reads better
+  // than the em dash a non-finite duration would produce.
+  const realLabel = Number.isFinite(real) ? duration(real) : 'never';
 
   $('#verdict').innerHTML = `
     <dl class="kv">${lines}</dl>
     <dl class="statgrid" style="margin-top:12px">
       <div><dt>Unconstrained</dt><dd>${duration(b.seconds)}</dd></div>
-      <div><dt>At this income</dt><dd class="${worst > 1 ? 'bad' : 'good'}">${duration(real)}</dd></div>
+      <div><dt>At this income</dt><dd class="${worst > 1 ? 'bad' : 'good'}">${realLabel}</dd></div>
     </dl>`;
 }
 

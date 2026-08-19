@@ -16,11 +16,6 @@
 
   <section class="panel">
     <h2>Build time &amp; drain</h2>
-    <p class="hint">
-      <code>seconds = buildTime / total build power</code> ·
-      <code>drain per second = cost / seconds</code> — the formulas from the game's own template schema.
-    </p>
-
     <div class="field">
       <label for="target-input">Building</label>
       <div id="target"></div>
@@ -29,7 +24,6 @@
     <div class="field">
       <label for="primary-input">Built by</label>
       <div id="primary"></div>
-      <p class="note" id="primary-note"></p>
     </div>
 
     <div class="field">
@@ -46,11 +40,6 @@
 
   <section class="panel">
     <h2>Economy</h2>
-    <p class="hint">
-      Net income from a set of structures, including their own upkeep. Production and
-      upkeep values in the templates are per second.
-    </p>
-
     <div id="economy" class="builders"></div>
     <div class="add-row">
       <div id="econ-pick" class="grow"></div>
@@ -62,10 +51,6 @@
 
   <section class="panel wide">
     <h2>Can I afford it?</h2>
-    <p class="hint">
-      Compares the drain of the build above against the net income of the economy above.
-      A build that outruns your income will stall.
-    </p>
     <div id="verdict" class="readout"></div>
   </section>
 

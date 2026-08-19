@@ -65,10 +65,15 @@ cannot start a T4 bot — the Ares can only be begun by a Chosen T3 Engineer or 
 Engineering Station. The builder picker is limited to that list and re-checks
 itself whenever the target changes, including when restoring from a URL.
 
-Assisting is a separate pool. Any unit with the `Assist` order and build power
-can pour into someone else's build — 171 units can assist, 64 of them have build
-power — including builds it could never have started itself, so those come from
-their own list and simply add their build power to the total.
+**Assisting is gated on reach, not on the Assist order.** `construction.range`
+is what lets a unit help with someone else's build. A factory has 10 build power
+but no range, so it can only work its own queue — it cannot assist, and cannot be
+assisted by another factory either. Exactly **22 units have a build range**:
+commanders, engineers and engineering stations.
+
+The `Assist` order is not a usable signal on its own — 42 of the 60 builders
+*without* a range still declare `Assist = true`, which would let a factory assist
+a factory. `canAssist` therefore requires both.
 
 Both pickers are filter-as-you-type comboboxes (`shared/combo.js`); a plain
 select over a couple of hundred units is unusable.
