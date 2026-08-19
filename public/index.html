@@ -3,22 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sanctuary: Shattered Sun — Unit Database</title>
+<title>Units — SanctuaryDB</title>
 <meta name="description" content="Browse every unit in Sanctuary: Shattered Sun with costs, stats and build trees, generated directly from the game files.">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="/styles.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M20 8H44L56 20V44L44 56H20L8 44V20Z' fill='none' stroke='%235aa9ff' stroke-width='5'/></svg>">
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand">
-    <h1>Sanctuary <span>Unit Database</span></h1>
-    <p class="sub" id="meta-line">Loading…</p>
-  </div>
+<header class="topbar" id="site-header"></header>
+
+<div class="pagebar">
   <div class="search">
     <input type="search" id="search" placeholder="Search name, id, role or tag…" autocomplete="off" spellcheck="false">
   </div>
-</header>
+</div>
 
 <main class="layout">
   <aside class="filters" id="filters">
@@ -53,6 +51,6 @@
 <aside class="detail" id="detail" hidden aria-live="polite"></aside>
 <div class="scrim" id="scrim" hidden></div>
 
-<script type="module" src="app.js"></script>
+<script type="module" src="/app.js"></script>
 </body>
 </html>

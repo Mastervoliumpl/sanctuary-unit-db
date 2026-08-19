@@ -1,4 +1,5 @@
-import { unitIcon, loadIconManifest, FACTION_COLOURS, FACTION_ORDER } from './icons.js';
+import { unitIcon, loadIconManifest, FACTION_COLOURS, FACTION_ORDER } from '/icons.js';
+import { mountHeader, loadUnits, setMetaLine } from '/shared/nav.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -43,23 +44,23 @@ async function init() {
   // Icons are needed before the first paint, otherwise they render as SVG and
   // then swap to artwork a frame later. Previews only matter once a unit is
   // opened, so a failure there is non-fatal.
-  const [res, , previews] = await Promise.all([
-    fetch('data/units.json'),
-    loadIconManifest(),
-    fetch('previews/manifest.json').then((r) => (r.ok ? r.json() : [])).catch(() => []),
-  ]);
-  const data = await res.json();
+  mountHeader({ subtitle: 'Loading…' });
 
+  const [data, , previews] = await Promise.all([
+    loadUnits(),
+    loadIconManifest(),
+    fetch('/previews/manifest.json').then((r) => (r.ok ? r.json() : [])).catch(() => []),
+  ]);
   state.previews = new Set(previews);
   state.units = data.units;
   state.byId = new Map(data.units.map((u) => [u.id, u]));
   state.groups = buildGroups(data.units);
 
-  $('#meta-line').textContent =
+  setMetaLine(
     `${data.meta.unitCount} units · ` +
     `${data.units.filter((u) => u.status === 'in-game').length} in game, ` +
     `${data.units.filter((u) => u.status === 'in-progress').length} in progress · ` +
-    `extracted ${new Date(data.meta.generatedAt).toLocaleDateString()}`;
+    `extracted ${new Date(data.meta.generatedAt).toLocaleDateString()}`);
 
   buildFilters();
   wireEvents();
@@ -366,7 +367,7 @@ function detailHtml(u) {
   // shipped and it reads far better than an icon at this size.
   const preview = state.previews.has(u.id)
     ? `<div class="preview" style="--fc:${FACTION_COLOURS[u.faction]}">
-         <img src="previews/${u.id}.png" alt="${u.name ?? u.displayName}" width="132" height="132" decoding="async">
+         <img src="/previews/${u.id}.png" alt="${u.name ?? u.displayName}" width="132" height="132" decoding="async">
        </div>`
     : '';
 
@@ -394,6 +395,7 @@ function detailHtml(u) {
   <div class="section"><h3>Cost &amp; core</h3><dl class="statgrid">${core}</dl></div>
 
   ${economySection(u)}
+  ${adjacencySection(u)}
   ${weaponsSection(u)}
   ${shieldSection(u)}
   ${mobilitySection(u)}
@@ -416,6 +418,27 @@ function economySection(u) {
   if (!lines.length) return '';
 
   return section('Economy', `<dl class="kv">${lines.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`);
+}
+
+// Structures pass bonuses to whatever is built touching them. Only the granting
+// side is in the templates, so this is shown on the generator/extractor rather
+// than on the factory that benefits.
+function adjacencySection(u) {
+  if (!u.adjacency?.effects?.length) return '';
+
+  const rows = u.adjacency.effects
+    .map((e) => {
+      const sign = e.percent < 0 ? '' : '+';
+      const targets = e.targets.map((t) => t.replace(/_/g, ' ').toLowerCase()).join(' or ');
+      return `<dt>${e.label}</dt><dd><strong class="${e.percent < 0 ? 'good' : 'good'}">${sign}${e.percent}%</strong> ${e.resource} · to adjacent ${targets}</dd>`;
+    })
+    .join('');
+
+  return section(
+    'Adjacency bonus',
+    `<dl class="kv">${rows}</dl>
+     <p class="hint">Applies to structures built directly against this one, and stacks per adjacent source.</p>`
+  );
 }
 
 function weaponsSection(u) {

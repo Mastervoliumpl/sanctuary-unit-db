@@ -19,7 +19,10 @@ const read = (rel) => JSON.parse(fs.readFileSync(path.join(PUBLIC, rel), 'utf8')
 const exists = (rel) => fs.existsSync(path.join(PUBLIC, rel));
 
 function main() {
-  for (const file of ['index.html', 'app.js', 'icons.js', 'styles.css']) {
+  for (const file of [
+    'index.html', 'app.js', 'icons.js', 'styles.css',
+    'shared/nav.js', 'calculator/index.html', 'calculator/calc.js',
+  ]) {
     if (!exists(file)) fail(`missing ${file}`);
   }
 

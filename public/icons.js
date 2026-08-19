@@ -103,7 +103,7 @@ let available = null;
  * Loads the list of extracted icons so unitIcon can prefer the real artwork.
  * Safe to skip — without it everything renders as generated SVG.
  */
-export async function loadIconManifest(url = 'icons/manifest.json') {
+export async function loadIconManifest(url = '/icons/manifest.json') {
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(String(res.status));
@@ -131,7 +131,7 @@ export function unitIcon(icon, faction, opts = {}) {
   if (available?.has(key)) {
     const size = opts.size ?? 40;
     const dir = (FACTION_COLOURS[faction] ? faction : 'EDA').toLowerCase();
-    return `<img class="unit-icon" src="icons/${dir}/${key}.png" width="${size}" height="${size}"
+    return `<img class="unit-icon" src="/icons/${dir}/${key}.png" width="${size}" height="${size}"
       alt="" loading="lazy" decoding="async"${opts.muted ? ' data-muted="true"' : ''}>`;
   }
   return unitIconSvg(icon, faction, opts);

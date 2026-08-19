@@ -1,7 +1,10 @@
-# Sanctuary: Shattered Sun — Unit Database
+# SanctuaryDB
 
-A browsable database of every unit in *Sanctuary: Shattered Sun*, with costs, stats
-and build trees generated directly from the game's own data files.
+Tools for *Sanctuary: Shattered Sun*, generated directly from the game's own data
+files. Currently two pages:
+
+- **/** — unit database: every unit with costs, stats, weapons and build trees
+- **/calculator/** — build time, resource drain and economy planning
 
 No dependencies, no build step. `public/` is a plain static site.
 
@@ -23,6 +26,69 @@ manually:
 ```bash
 SANCTUARY_PATH="D:/SteamLibrary/steamapps/common/Sanctuary Shattered Sun Demo" npm run extract
 ```
+
+## Pages
+
+`public/` is a multi-page static site. Pages share `styles.css`, `icons.js` and
+`shared/nav.js`, and reference assets from the site root (`/data/...`) rather
+than relatively, because they sit at different depths.
+
+| Page | File | What it does |
+|---|---|---|
+| `/` | `public/index.html` + `app.js` | Unit database — the aligned faction board |
+| `/calculator/` | `public/calculator/` | Build time, drain and economy planning |
+
+`shared/nav.js` renders the header and nav for both, and publishes the measured
+header height as `--header-h` so the sticky sidebar and column headers line up
+without a hard-coded offset that drifts whenever the chrome changes.
+
+Adding a page means a new folder with an `index.html`, a script that calls
+`mountHeader()`, and an entry in `PAGES` in `shared/nav.js`.
+
+## The calculator
+
+Everything comes from the formulas the schema documents, so the numbers match
+the game rather than being modelled:
+
+```
+seconds        = buildTime / total build power      (assisting builders add up)
+drain per sec  = cost / seconds
+```
+
+So three T2 engineers (10 build power each) on a T3 Land Factory — 4,200 build
+time, 2,000 alloys, 20,000 energy — take 140s and draw 14.29 alloys/s and 142.86
+energy/s.
+
+The economy panel sums `production`, `maintenanceConsumption` and `storage`
+across a set of structures. Those values are already per second in the templates
+(`resourceEntity.lua` divides them by `Constants.TickRate` internally).
+
+The third panel is the one worth having: it compares build drain against net
+income and stretches the build time by the shortfall, since a build that outruns
+your economy stalls rather than failing. That 140s factory takes **16m 40s** on
+four extractors and two T1 generators.
+
+Setups are kept in the URL, so a build can be shared or bookmarked.
+
+## Adjacency
+
+`host/systems/adjacencyBuffs.lua` defines bonuses structures pass to neighbours.
+It isn't a plain literal — `targetTags` are Lua expressions like
+`Tags.FACTORY + Tags.ENGINEERING_STATION` — so `readAdjacencyBuffs` reads each
+block with a regex instead of the table parser.
+
+29 units grant a buff, across six types:
+
+| Source | Effect |
+|---|---|
+| Alloy Extractor | −10% alloy build cost to adjacent factories / engineering stations |
+| T1/T2/T3 Energy Generator | −2.5% / −10% / −15% energy build cost, and the same off radar and shield upkeep |
+| T1 Alloy Storage, T1 Energy Storage | +20% storage to adjacent storage of the same kind |
+
+Several buffs defined in that file are wired to no unit at all (the alloy
+fabricators, T2/T3 storages), so they're dropped rather than advertised as live.
+The effect is shown on the granting structure, since that's the side the
+templates describe.
 
 ## Where the data comes from
 

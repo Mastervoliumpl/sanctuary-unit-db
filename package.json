@@ -1,8 +1,8 @@
 {
-  "name": "sanctuary-unit-db",
+  "name": "sanctuarydb",
   "version": "0.1.0",
   "private": true,
-  "description": "Unit database for Sanctuary: Shattered Sun, generated from the game's Lua templates",
+  "description": "SanctuaryDB — unit database and calculators for Sanctuary: Shattered Sun, generated from the game files",
   "type": "module",
   "//": "No `build` script on purpose. Vercel auto-detects and runs `npm run build` when one exists, and these scripts need a local game install. Deploys serve public/ as-is.",
   "scripts": {

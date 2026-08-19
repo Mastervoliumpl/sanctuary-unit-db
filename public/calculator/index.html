@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculator — SanctuaryDB</title>
+<meta name="description" content="Build time, resource drain and economy planning for Sanctuary: Shattered Sun, using the game's own formulas.">
+<link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M20 8H44L56 20V44L44 56H20L8 44V20Z' fill='none' stroke='%235aa9ff' stroke-width='5'/></svg>">
+</head>
+<body>
+
+<header class="topbar" id="site-header"></header>
+
+<main class="calc">
+
+  <section class="panel">
+    <h2>Build time &amp; drain</h2>
+    <p class="hint">
+      <code>seconds = buildTime / total build power</code> ·
+      <code>drain per second = cost / seconds</code> — the formulas from the game's own template schema.
+    </p>
+
+    <div class="field">
+      <label for="target">Building</label>
+      <select id="target"></select>
+    </div>
+
+    <div class="field">
+      <label>Builders</label>
+      <div id="builders" class="builders"></div>
+      <div class="add-row">
+        <select id="builder-pick"></select>
+        <button type="button" id="builder-add">Add builder</button>
+      </div>
+    </div>
+
+    <div id="build-out" class="readout"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Economy</h2>
+    <p class="hint">
+      Net income from a set of structures, including their own upkeep. Production and
+      upkeep values in the templates are per second.
+    </p>
+
+    <div id="economy" class="builders"></div>
+    <div class="add-row">
+      <select id="econ-pick"></select>
+      <button type="button" id="econ-add">Add structure</button>
+    </div>
+
+    <div id="econ-out" class="readout"></div>
+  </section>
+
+  <section class="panel wide">
+    <h2>Can I afford it?</h2>
+    <p class="hint">
+      Compares the drain of the build above against the net income of the economy above.
+      A build that outruns your income will stall.
+    </p>
+    <div id="verdict" class="readout"></div>
+  </section>
+
+</main>
+
+<script type="module" src="/calculator/calc.js"></script>
+</body>
+</html>

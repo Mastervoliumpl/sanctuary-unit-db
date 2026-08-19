@@ -20,8 +20,11 @@ const TYPES = {
 http
   .createServer((req, res) => {
     const urlPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
-    const rel = urlPath === '/' ? 'index.html' : urlPath.slice(1);
-    const file = path.join(ROOT, rel);
+    // Directory URLs resolve to their index.html, matching how the host serves
+    // /calculator/ in production.
+    let file = path.join(ROOT, urlPath.slice(1));
+    if (urlPath.endsWith('/')) file = path.join(file, 'index.html');
+    else if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
 
     // Refuse anything that escapes the public directory.
     if (!file.startsWith(ROOT)) {

@@ -52,6 +52,7 @@ function main() {
   console.log(`tree:      ${tree}  (unit data; art always comes from prototype)`);
 
   const available = readAvailability(path.join(lua, 'common', 'units', 'availableUnits.lua'));
+  const adjacency = readAdjacencyBuffs(path.join(lua, 'host', 'systems', 'adjacencyBuffs.lua'));
   const models = scanUnitModels(gameDir);
   console.log(`models:    ${models.size} unit ids have LOD art in the scene files`);
   const templateDir = path.join(lua, 'common', 'units', 'unitsTemplates');
@@ -67,7 +68,7 @@ function main() {
     }
     try {
       const raw = parseLuaTable(fs.readFileSync(file, 'utf8'), { assignment: 'UnitTemplate' });
-      units.push(toUnit(raw, id, available, models));
+      units.push(toUnit(raw, id, available, models, adjacency));
     } catch (err) {
       failures.push({ id, reason: err.message });
     }
@@ -145,6 +146,56 @@ function scanUnitModels(gameDir) {
   return found;
 }
 
+// Adjacency bonuses, from host/systems/adjacencyBuffs.lua.
+//
+// Structures placed next to each other pass buffs along: an energy generator
+// makes adjacent factories cheaper to build from, storages boost neighbouring
+// storages. The file isn't a plain literal — targetTags are Lua expressions like
+// `Tags.FACTORY + Tags.ENGINEERING_STATION` — so each buff block is read with a
+// regex rather than the table parser.
+//
+// A buff only does anything if some unit's template names it, and several
+// defined here are not wired to any unit (the alloy fabricators, T2/T3
+// storages), so those are dropped rather than advertised as live.
+function readAdjacencyBuffs(file) {
+  const buffs = new Map();
+  if (!fs.existsSync(file)) return buffs;
+
+  const text = fs.readFileSync(file, 'utf8');
+  // Only the data table matters; the registration loop below it is behaviour.
+  const table = text.slice(text.indexOf('adjacencyBuffsData = {'));
+
+  // Each top-level entry: `T1EnergyGenerator = { ... },` at one indent level.
+  for (const unitBlock of table.matchAll(/^    (\w+) = \{$([\s\S]*?)^    \},$/gm)) {
+    const [, source, body] = unitBlock;
+    const effects = [];
+
+    for (const effect of body.matchAll(/^        (\w+) = \{$([\s\S]*?)^        \},$/gm)) {
+      const [, category, fields] = effect;
+      // Commented-out effects are proposals, not live behaviour.
+      if (/^\s*--/.test(fields.split('\n')[0] ?? '')) continue;
+
+      const extra = Number(fields.match(/extra\s*=\s*(-?[\d.]+)/)?.[1]);
+      const resource = fields.match(/resource\s*=\s*"(\w+)"/)?.[1];
+      const targets = [...(fields.match(/targetTags\s*=\s*([^\n]+)/)?.[1] ?? '').matchAll(/Tags\.(\w+)/g)]
+        .map((m) => m[1]);
+
+      if (Number.isNaN(extra) || !resource) continue;
+      effects.push({ category, resource, extra, targets });
+    }
+
+    if (effects.length) buffs.set(`${source}AdjacencyBuff`, { source, effects });
+  }
+  return buffs;
+}
+
+// Pretty names for the buff categories.
+const ADJACENCY_CATEGORIES = {
+  ConstructionDiscount: 'Build cost',
+  ConsumptionDiscount: 'Upkeep',
+  StorageBonus: 'Storage',
+};
+
 // The engine tree's availableUnits.lua is a live QA tracker, not the stale list
 // the prototype tree carries. Each row is
 //
@@ -173,6 +224,25 @@ function readAvailability(file) {
   return map;
 }
 
+// Resolves the buff name a template declares into its actual effects.
+function adjacencyOf(buffName, buffs) {
+  if (!buffName) return null;
+  const buff = buffs.get(buffName);
+  if (!buff) {
+    issues.push(`unknown adjacency buff "${buffName}" — not defined in adjacencyBuffs.lua`);
+    return null;
+  }
+  return {
+    source: buff.source,
+    effects: buff.effects.map((e) => ({
+      ...e,
+      label: ADJACENCY_CATEGORIES[e.category] ?? e.category,
+      // Stored as a fraction; -0.15 means 15% cheaper.
+      percent: Math.round(e.extra * 1000) / 10,
+    })),
+  };
+}
+
 // Reason codes, prettified for display.
 const REASONS = {
   OK: 'Signed off',
@@ -191,7 +261,7 @@ function statusOf(hasModel, entry) {
   return entry?.enabled ? 'in-game' : 'in-progress';
 }
 
-function toUnit(t, id, available, models) {
+function toUnit(t, id, available, models, adjacency) {
   const general = t.general ?? {};
   const economy = t.economy ?? {};
   const status = available.get(id);
@@ -242,6 +312,8 @@ function toUnit(t, id, available, models) {
     statusReason: REASONS[status?.reason] ?? status?.reason ?? null,
     internalName: status?.internalName ?? null,
     demoOnly: tags.includes('DEMO_UI_ONLY'),
+    // What this structure grants to neighbours when built next to them.
+    adjacency: adjacencyOf(t.adjacency, adjacency),
 
     cost,
     buildTime: economy.buildTime ?? 0,
