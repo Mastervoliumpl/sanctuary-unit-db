@@ -6,14 +6,24 @@ files. Currently two pages:
 - **/** — unit database: every unit with costs, stats, weapons and build trees
 - **/calculator/** — build time, resource drain and economy planning
 
-No dependencies, no build step. `public/` is a plain static site.
+Built with [TanStack Start](https://tanstack.com/start) (React + TypeScript on
+Vite), prerendered to a purely static site — there is no server at runtime.
+The game data pipeline is separate: plain Node scripts that read a local game
+install and commit their output to `public/`.
 
 ## Quick start
 
+Needs Node 22.12+ (`engines` enforces it; Vite 7 won't run on less).
+
 ```bash
-npm run refresh   # extract + icons: regenerate everything from a local game install
-npm run dev       # serve public/ at http://localhost:5173
-npm run verify    # check public/ is complete and deployable (no game needed)
+npm install
+npm run dev       # Vite dev server at http://localhost:5173
+npm test          # unit tests over the calculators, grouping and data invariants
+npm run typecheck # tsc
+npm run build     # prerender both routes to dist/client/
+npm run verify    # check public/ data + art are complete (no game needed)
+
+npm run refresh   # extract + icons: regenerate data from a local game install
 ```
 
 `refresh` is `npm run extract` (game data → `public/data/units.json`) followed by
@@ -29,21 +39,26 @@ SANCTUARY_PATH="D:/SteamLibrary/steamapps/common/Sanctuary Shattered Sun Demo" n
 
 ## Pages
 
-`public/` is a multi-page static site. Pages share `styles.css`, `icons.js` and
-`shared/nav.js`, and reference assets from the site root (`/data/...`) rather
-than relatively, because they sit at different depths.
+Routes are files in `src/routes/` (TanStack Router file-based routing); both
+are prerendered at build time and hydrate into an SPA.
 
-| Page | File | What it does |
+| Page | Route file | What it does |
 |---|---|---|
-| `/` | `public/index.html` + `app.js` | Unit database — the aligned faction board |
-| `/calculator/` | `public/calculator/` | Build time, drain and economy planning |
+| `/` | `src/routes/index.tsx` | Unit database — the aligned faction board |
+| `/calculator` | `src/routes/calculator.tsx` | Build time, drain and economy planning |
 
-`shared/nav.js` renders the header and nav for both, and publishes the measured
-header height as `--header-h` so the sticky sidebar and column headers line up
-without a hard-coded offset that drifts whenever the chrome changes.
+All UI state lives in the URL as typed search params — filters, sort, the open
+unit, the calculator setup — using the same param names and encoding as the
+pre-framework site, so old shared links keep working. The router uses a custom
+search serializer (`src/router.tsx`) because every param here is a plain
+string and the default would JSON-quote numeric-looking values.
 
-Adding a page means a new folder with an `index.html`, a script that calls
-`mountHeader()`, and an entry in `PAGES` in `shared/nav.js`.
+`src/components/Header.tsx` renders the shared chrome and publishes the
+measured header height as `--header-h` so the sticky sidebar and column
+headers line up without a hard-coded offset that drifts whenever the chrome
+changes.
+
+Adding a page means a new file in `src/routes/` and a `<Link>` in the header.
 
 ## The calculator
 
@@ -77,8 +92,8 @@ build queue rather than helping construct anything. Both fields are meaningful;
 only `construction.range` is the one that adds build power, which is what the
 calculator is measuring.
 
-Both pickers are filter-as-you-type comboboxes (`shared/combo.js`); a plain
-select over a couple of hundred units is unusable.
+Both pickers are filter-as-you-type comboboxes (`src/components/Combobox.tsx`);
+a plain select over a couple of hundred units is unusable.
 
 The economy panel sums `production`, `maintenanceConsumption` and `storage`
 across a set of structures. Those values are already per second in the templates
@@ -448,53 +463,59 @@ hundred MB of hosting. One model is an afternoon; 283 is a separate project.
 
 ## Deploying
 
-**The scripts are local-only. Production never runs them** — it can't, because
-there's no game install on a build server. `public/` is committed complete and
-served as-is:
+**The extraction scripts are local-only. Production never runs them** — it
+can't, because there's no game install on a build server. The split is:
+
+- `npm run build` (Vite) only needs the **committed** `public/data` + art, so
+  it runs anywhere, including on Vercel. `vercel.json` points at it and serves
+  `dist/client/` — static files only, no server runtime.
+- `npm run extract` / `icons` / `refresh` need the game install and only ever
+  run on your machine. Their output is committed.
 
 ```bash
 vercel deploy
 ```
 
-Three things keep it that way, and they're deliberate:
-
-1. **There is no `build` script in `package.json`.** Vercel auto-detects and runs
-   `npm run build` whenever one exists, so a `build` that called `extract` would
-   fail every deploy on a missing game install. The composite is named `refresh`
-   instead. Don't add a `build` script.
-2. **`vercel.json` sets an explicit no-op `buildCommand`** rather than `null`.
-   `null` means "fall back to auto-detection", which is the behaviour we're
-   avoiding.
-3. **`.vercelignore` excludes `scripts/` and `icons-src/`.** Neither is reachable
-   from the served site, and it keeps the upload to just the 1.9 MB of `public/`.
-
 The workflow after a game patch is: `npm run refresh` locally, `npm run verify`,
-then commit the regenerated `public/` and push. `verify` reads only `public/`, so
-it also works as a CI check on a machine that has never seen the game.
+`npm test` (it pins known-good derived values, so a surprising diff here is
+either a real balance change or an extractor regression), then commit the
+regenerated `public/` and push. CI (`.github/workflows/ci.yml`) runs verify,
+typecheck, tests and the build on every push — none of it needs the game.
 
-If you ever want this automated, the extractor has to run somewhere the game
-files exist — a self-hosted runner or your own machine on a schedule — pushing
-the regenerated JSON. It cannot run on Vercel.
+If you ever want extraction automated, it has to run somewhere the game files
+exist — a self-hosted runner or your own machine on a schedule — pushing the
+regenerated JSON. It cannot run on Vercel.
 
 ## Layout
 
 ```
-icons-src/        136 extracted icon masters (committed; source for npm run icons)
-scripts/
-  lua-parser.js   Lua table literal -> JS
-  locate-game.js  finds the install via Steam's library index
-  extract.js      templates -> public/data/units.json
-  build-icons.js  icons-src/ -> per-faction PNGs (zero-dep PNG codec)
-  serve.js        dev-only static server
-public/
-  index.html      shell
-  app.js          grouping, filtering, sorting, detail panel, URL state
-  icons.js        icon rendering: real artwork, SVG fallback, faction palette
-  styles.css
-  data/units.json generated
-  icons/          generated: <faction>/*.png plus manifest.json
-  previews/       225 extracted unit renders plus manifest.json
+icons-src/          136 extracted icon masters (committed; source for npm run icons)
+scripts/            local-only data pipeline, plain Node
+  lua-parser.js     Lua table literal -> JS
+  locate-game.js    finds the install via Steam's library index
+  extract.js        templates -> public/data/units.json
+  build-icons.js    icons-src/ -> per-faction PNGs (zero-dep PNG codec)
+  verify.js         checks public/ data + art consistency (no game needed)
+src/                the site, TanStack Start + React + TypeScript
+  router.tsx        router factory + legacy-compatible search param encoding
+  routes/
+    __root.tsx      document shell, head, shared header
+    index.tsx       unit board route: filters, sort, detail — all URL state
+    calculator.tsx  calculator route: build/economy setup — all URL state
+  lib/
+    types.ts        the Unit type — the one contract for units.json
+    data.ts         cached fetch of units.json + both manifests
+    board.ts        grouping, filtering, sorting (pure functions)
+    calc.ts         build/economy maths, option pools, URL row packing
+    *.test.ts       vitest suites, run against the committed units.json
+  components/       Header, UnitIcon (art + SVG fallback), UnitCard,
+                    DetailPanel, Combobox
+public/             static assets copied verbatim into the build
+  data/units.json   generated
+  icons/            generated: <faction>/*.png plus manifest.json
+  previews/         extracted unit renders plus manifest.json
 ```
 
 `public/data/units.json`, `public/icons/` and `public/previews/` are all
-committed, since Vercel serves the site with no build step.
+committed — the Vercel build bundles the app around them without needing the
+game.

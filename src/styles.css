@@ -12,7 +12,7 @@
   --icon-muted: #5a6472;
   --radius: 8px;
   --sidebar: 232px;
-  /* Overwritten at runtime by nav.js once the header is measured. */
+  /* Overwritten at runtime by Header.tsx once the header is measured. */
   --header-h: 76px;
 }
 

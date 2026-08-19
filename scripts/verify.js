@@ -19,13 +19,8 @@ const read = (rel) => JSON.parse(fs.readFileSync(path.join(PUBLIC, rel), 'utf8')
 const exists = (rel) => fs.existsSync(path.join(PUBLIC, rel));
 
 function main() {
-  for (const file of [
-    'index.html', 'app.js', 'icons.js', 'styles.css',
-    'shared/nav.js', 'shared/combo.js', 'calculator/index.html', 'calculator/calc.js',
-  ]) {
-    if (!exists(file)) fail(`missing ${file}`);
-  }
-
+  // The app itself is built from src/ by Vite; public/ carries only the
+  // generated data and art the build copies through verbatim.
   if (!exists('data/units.json')) {
     fail('missing data/units.json — run `npm run extract` against a local game install');
     return report();
@@ -110,7 +105,7 @@ const comboOf = (u) => `${u.icon?.shape}_${u.icon?.tech}_${u.icon?.symbol}`;
 function report() {
   for (const note of notes) console.log(`  ${note}`);
   if (!problems.length) {
-    console.log('\nOK — public/ is complete and self-contained, safe to deploy.');
+    console.log('\nOK — public/ data and art are complete and consistent, safe to deploy.');
     return;
   }
   console.error(`\n${problems.length} problem${problems.length === 1 ? '' : 's'}:`);

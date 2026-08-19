@@ -1,12 +1,16 @@
-// Builds unit icons as SVG from the shape / symbol / tech triple that every
-// template carries. The game composes its own icons the same way, so this
-// stays in sync with the data instead of needing a separate art pipeline.
+// Unit icons: the game's own artwork where it was extracted, and a generated
+// SVG in the same visual language where it wasn't. The game composes its icons
+// from the same shape / symbol / tech triple every template carries, so the
+// fallback stays in sync with the data instead of needing a separate art
+// pipeline.
 //
 // Canvas is a 64x64 box: outline shape at the edge, role glyph in the upper
 // middle, tech-tier pips along the bottom.
 
+import type { Faction, UnitIconSpec } from '../lib/types';
+
 // Faction liveries, matching the in-game unit schemes.
-export const FACTION_COLOURS = {
+export const FACTION_COLOURS: Record<string, string> = {
   EDA: '#4ad17e',
   Chosen: '#ff5a52',
   Guard: '#f5b52a',
@@ -14,11 +18,11 @@ export const FACTION_COLOURS = {
 };
 
 // Column order everywhere in the UI.
-export const FACTION_ORDER = ['EDA', 'Chosen', 'Guard'];
+export const FACTION_ORDER: Faction[] = ['EDA', 'Chosen', 'Guard'];
 
 // Outline silhouettes. The "2" variants repeat the same outline inset, which is
 // how the game distinguishes the heavier chassis of the same movement class.
-const SHAPES = {
+const SHAPES: Record<string, string> = {
   land1: 'M8 8 H56 V56 H8 Z',
   land2: 'M8 8 H56 V56 H8 Z',
   bot1: 'M16 8 H48 A8 8 0 0 1 56 16 V48 A8 8 0 0 1 48 56 H16 A8 8 0 0 1 8 48 V16 A8 8 0 0 1 16 8 Z',
@@ -33,12 +37,11 @@ const SHAPES = {
   experimental2: 'M32 6 A26 26 0 1 1 31.99 6 Z',
 };
 
-const DOUBLE_OUTLINE = new Set([
-  'land2', 'bot2', 'air2', 'naval2', 'structure2', 'experimental2',
-]);
+const DOUBLE_OUTLINE = new Set(['land2', 'bot2', 'air2', 'naval2', 'structure2', 'experimental2']);
 
 // Role glyphs, drawn inside a box centred on (32, 27) roughly 26px across.
-const SYMBOLS = {
+// Static markup, injected with dangerouslySetInnerHTML — nothing user-supplied.
+const SYMBOLS: Record<string, string> = {
   // Direct fire: solid core.
   direct: '<circle cx="32" cy="27" r="8" fill="currentColor"/>',
 
@@ -95,80 +98,86 @@ const SYMBOLS = {
   none: '',
 };
 
-// Combos with a real extracted icon in public/icons/<faction>/. Populated by
-// loadIconManifest(); until then every icon falls back to the generated SVG.
-let available = null;
-
-/**
- * Loads the list of extracted icons so unitIcon can prefer the real artwork.
- * Safe to skip — without it everything renders as generated SVG.
- */
-export async function loadIconManifest(url = '/icons/manifest.json') {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(String(res.status));
-    available = new Set(await res.json());
-  } catch {
-    available = new Set();
-  }
-  return available;
-}
-
-const comboKey = (icon) =>
+const comboKey = (icon: UnitIconSpec | null): string | null =>
   icon?.shape && icon?.tech && icon?.symbol ? `${icon.shape}_${icon.tech}_${icon.symbol}` : null;
 
-/**
- * Renders a unit icon: the game's own artwork where it was extracted, and a
- * generated SVG in the same visual language where it wasn't.
- *
- * @param {{shape?: string, symbol?: string, tech?: string}} icon
- * @param {string} faction  key into FACTION_COLOURS
- * @param {{size?: number, muted?: boolean}} [opts]
- * @returns {string} inline SVG, or an <img> pointing at the extracted PNG
- */
-export function unitIcon(icon, faction, opts = {}) {
+interface UnitIconProps {
+  icon: UnitIconSpec | null;
+  faction: string;
+  /** Combos with real extracted artwork; comes from loadData(). */
+  manifest: Set<string>;
+  size?: number;
+  muted?: boolean;
+}
+
+export function UnitIcon({ icon, faction, manifest, size = 40, muted = false }: UnitIconProps) {
   const key = comboKey(icon);
-  if (available?.has(key)) {
-    const size = opts.size ?? 40;
+  if (key && manifest.has(key)) {
     const dir = (FACTION_COLOURS[faction] ? faction : 'EDA').toLowerCase();
-    return `<img class="unit-icon" src="/icons/${dir}/${key}.png" width="${size}" height="${size}"
-      alt="" loading="lazy" decoding="async"${opts.muted ? ' data-muted="true"' : ''}>`;
+    return (
+      <img
+        className="unit-icon"
+        src={`/icons/${dir}/${key}.png`}
+        width={size}
+        height={size}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        data-muted={muted || undefined}
+      />
+    );
   }
-  return unitIconSvg(icon, faction, opts);
+  return <UnitIconSvg icon={icon} faction={faction} size={size} muted={muted} />;
 }
 
 /** The generated fallback, also used directly for combos the game never shipped. */
-export function unitIconSvg(icon, faction, opts = {}) {
-  const size = opts.size ?? 40;
-  const colour = opts.muted ? 'var(--icon-muted)' : FACTION_COLOURS[faction] ?? FACTION_COLOURS.Unknown;
-  const shapePath = SHAPES[icon?.shape] ?? SHAPES.land1;
-  const glyph = SYMBOLS[icon?.symbol] ?? '';
+export function UnitIconSvg({
+  icon,
+  faction,
+  size = 40,
+  muted = false,
+}: Omit<UnitIconProps, 'manifest'>) {
+  const colour = muted ? 'var(--icon-muted)' : (FACTION_COLOURS[faction] ?? FACTION_COLOURS.Unknown);
+  const shape = icon?.shape ?? 'land1';
+  const shapePath = SHAPES[shape] ?? SHAPES.land1;
+  const glyph = SYMBOLS[icon?.symbol ?? 'none'] ?? '';
   const tier = Number(String(icon?.tech ?? '').replace('t', '')) || 0;
 
-  const inner = DOUBLE_OUTLINE.has(icon?.shape)
-    ? `<g transform="translate(32 32) scale(0.78) translate(-32 -32)">
-         <path d="${shapePath}" fill="none" stroke="${colour}" stroke-width="3.2" opacity="0.75"/>
-       </g>`
-    : '';
-
-  return `<svg class="unit-icon" viewBox="0 0 64 64" width="${size}" height="${size}"
-     role="img" aria-hidden="true" style="color:${colour}">
-  <path d="${shapePath}" fill="var(--icon-fill)" stroke="${colour}" stroke-width="3.5" stroke-linejoin="round"/>
-  ${inner}
-  <g>${glyph}</g>
-  ${tierPips(tier, colour)}
-</svg>`;
+  return (
+    <svg
+      className="unit-icon"
+      viewBox="0 0 64 64"
+      width={size}
+      height={size}
+      role="img"
+      aria-hidden="true"
+      style={{ color: colour }}
+    >
+      <path d={shapePath} fill="var(--icon-fill)" stroke={colour} strokeWidth={3.5} strokeLinejoin="round" />
+      {DOUBLE_OUTLINE.has(shape) && (
+        <g transform="translate(32 32) scale(0.78) translate(-32 -32)">
+          <path d={shapePath} fill="none" stroke={colour} strokeWidth={3.2} opacity={0.75} />
+        </g>
+      )}
+      <g dangerouslySetInnerHTML={{ __html: glyph }} />
+      <TierPips tier={tier} colour={colour} />
+    </svg>
+  );
 }
 
 // Tier is shown as pips along the bottom edge; tier 4 gets a solid bar since
 // four separate pips read as noise at small sizes.
-function tierPips(tier, colour) {
-  if (tier <= 0) return '';
-  if (tier >= 4) return `<rect x="21" y="46" width="22" height="4" rx="2" fill="${colour}"/>`;
+function TierPips({ tier, colour }: { tier: number; colour: string }) {
+  if (tier <= 0) return null;
+  if (tier >= 4) return <rect x={21} y={46} width={22} height={4} rx={2} fill={colour} />;
 
   const gap = 8;
   const start = 32 - ((tier - 1) * gap) / 2;
-  return Array.from({ length: tier }, (_, i) =>
-    `<rect x="${start + i * gap - 2.5}" y="46" width="5" height="4" rx="1.5" fill="${colour}"/>`
-  ).join('');
+  return (
+    <>
+      {Array.from({ length: tier }, (_, i) => (
+        <rect key={i} x={start + i * gap - 2.5} y={46} width={5} height={4} rx={1.5} fill={colour} />
+      ))}
+    </>
+  );
 }
