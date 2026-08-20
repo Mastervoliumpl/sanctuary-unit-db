@@ -478,8 +478,13 @@ function cycleMuzzleCount(w) {
   return count;
 }
 
-// Ported from AIFunctions.lua: GetWeaponDamagePerSecond — the game's own
-// sustained-DPS function, so the site agrees with what the AI uses.
+// Ported from AIFunctions.lua: GetWeaponDamagePerSecond, with one deliberate
+// divergence. The AI adds the salvo stretch on top of reloadTime, but the real
+// state machine (weaponsBaseClass.lua) resets reloadTimer as the salvo *starts*
+// and keeps counting it down through the salvo, so reload and salvo delay run
+// concurrently: the cycle is whichever is longer, not their sum. The Chosen
+// Commander (0.5s delay, 1s reload) visibly alternates barrels every half
+// second with no pause, which only the concurrent reading predicts.
 //
 // For beams `damage` is per tick, not per shot, and the game runs at
 // Constants.TickRate = 10:
@@ -487,9 +492,6 @@ function cycleMuzzleCount(w) {
 //   beamLifetime  1  pulse (railgun-like) — one tick of damage per reload cycle
 //   beamLifetime  N  burst — N ticks of damage per reload cycle
 // Non-beams fall through to damage x muzzles per cycle.
-//
-// Cycle time also accounts for muzzleSalvoDelay: a salvo fired with a delay
-// between groups stretches the cycle past reloadTime alone.
 function weaponDps(w) {
   if (w.category === 'DeathExplosion') return 0;
 
@@ -499,7 +501,7 @@ function weaponDps(w) {
   const salvoDelay = w.muzzleSalvoDelay ?? 0;
   const muzzleCount = cycleMuzzleCount(w);
   const damageOverTime = (w.damageOverTimePulseCount ?? 0) * (w.damageOverTimePulseDamage ?? 0);
-  const cycleTime = Math.max(reloadTime, reloadTime + (salvoSize - 1) * salvoDelay);
+  const cycleTime = Math.max(reloadTime, (salvoSize - 1) * salvoDelay);
 
   if (w.beamLifetime != null && w.beamLifetime > 0) {
     damage = damage * w.beamLifetime;

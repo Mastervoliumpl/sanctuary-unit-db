@@ -181,14 +181,14 @@ so the alignment survives sorting.
 Most fields are copied straight across. Several are computed, and the assumptions
 matter if you're using this for balance work:
 
-**DPS.** Ported directly from the game's own `AI/AIFunctions.lua` —
-`GetWeaponDamagePerSecond` and `GetWeaponCycleMuzzleCount` — so the site agrees
-with the figure the AI itself uses. Don't reimplement it from intuition; four
-separate things make the naive version wrong:
+**DPS.** Ported from the game's own `AI/AIFunctions.lua` —
+`GetWeaponDamagePerSecond` and `GetWeaponCycleMuzzleCount` — with one deliberate
+fix (see point 3). Don't reimplement it from intuition; four separate things
+make the naive version wrong:
 
 ```
 muzzleCount = sum of muzzles over salvoSize groups, wrapping: ((i-1) % groupCount) + 1
-cycleTime   = max(reloadTime, reloadTime + (salvoSize - 1) * muzzleSalvoDelay)
+cycleTime   = max(reloadTime, (salvoSize - 1) * muzzleSalvoDelay)
 DPS         = (damage * muzzleCount + damageOverTimePulses) / cycleTime
 ```
 
@@ -199,9 +199,16 @@ DPS         = (damage * muzzleCount + damageOverTimePulses) / cycleTime
    Auger is a continuous beam: 25.64 x 10 = **256.4 DPS**, not 25.64/3 = 8.5.
 2. **Salvo indices wrap around the muzzle groups.** A weapon with a salvo of 20
    over 1 group fires that group 20 times a cycle. Capping at the group count
-   put Quasar at 18.75 DPS instead of 362.1.
-3. **`muzzleSalvoDelay` stretches the cycle** past `reloadTime` alone — that
-   pulls most multi-barrel units _down_, e.g. Kodiak 348.63 to 316.93.
+   put Quasar at 18.75 DPS instead of 375.
+3. **Reload runs concurrently with the salvo, SupCom-style.** The weapon state
+   machine (`host/units/weaponsClasses/weaponsBaseClass.lua`) resets
+   `reloadTimer` as the salvo _starts_ and keeps counting it down while the
+   salvo plays out, so the cycle is `max(reload, salvo stretch)`, not their
+   sum. The AI's own `GetWeaponDamagePerSecond` adds them — the one place this
+   port diverges from it. In-game confirmation: the Chosen Commander (0.5s
+   salvo delay, 1s reload) alternates barrels every half second with no pause,
+   which the additive reading would break into fire-fire-pause. Following the
+   AI's version had, e.g., Kodiak at 316.93 instead of 348.63.
 4. **`damageOverTimePulseCount x damageOverTimePulseDamage`** adds to the
    numerator.
 

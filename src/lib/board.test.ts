@@ -79,8 +79,13 @@ describe('extracted data invariants (pinned from the game formulas)', () => {
     expect(dps('Auger')).toBeCloseTo(256.4, 1);
   });
 
-  it('salvo indices wrap muzzle groups — Kodiak includes muzzleSalvoDelay stretch', () => {
-    expect(dps('Kodiak')).toBeCloseTo(316.93, 1);
+  it('salvo indices wrap muzzle groups — Kodiak counts all three barrels', () => {
+    expect(dps('Kodiak')).toBeCloseTo(348.63, 1);
+  });
+
+  it('reload runs concurrently with the salvo — Chosen Commander fires 2×50 per second', () => {
+    const commander = data.units.find((u) => u.id === 'ucl0000')!;
+    expect(commander.dps).toBeCloseTo(100, 1);
   });
 
   it('bomber weapons with no muzzles report null DPS, not a confident zero', () => {
