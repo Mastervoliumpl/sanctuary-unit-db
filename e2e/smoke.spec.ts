@@ -18,7 +18,7 @@ test('unit board renders, filters via URL, and opens the detail panel', async ({
   const errors = collectErrors(page);
 
   await page.goto('/');
-  await expect(page.locator('.results-head span')).toContainText(/of \d+ units/);
+  await expect(page.locator('.toolbar span')).toContainText(/of \d+ units/);
   expect(await page.locator('.card').count()).toBeGreaterThan(50);
 
   // Legacy URL format still filters.
@@ -44,8 +44,8 @@ test('calculator restores a shared setup and computes the documented example', a
   // = 40 build power -> 1m 45s.
   await page.goto('/calculator?t=ues3511&p=uel3501&a=uel2501:2');
   await expect(page.locator('.combo-input').first()).toHaveValue('EDA · T3 Land Factory');
-  await expect(page.locator('.readout').first()).toContainText('1m 45s');
-  await expect(page.locator('.readout').first()).toContainText('40');
+  await expect(page.locator('.calc-rail')).toContainText('1m 45s');
+  await expect(page.locator('.calc-rail')).toContainText('40');
 
   expect(errors).toEqual([]);
 });

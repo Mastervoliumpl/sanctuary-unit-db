@@ -1,5 +1,6 @@
-// Shared site chrome, rendered once by the root route. Pages own the subtitle
-// via setMetaLine().
+// Shared site chrome, rendered once by the root route: one dense 46px bar with
+// the brand, nav, a centred slot (the units page portals its search here) and
+// the page-owned meta line via setMetaLine().
 
 import { useEffect, useRef } from 'react';
 import { Link } from '@tanstack/react-router';
@@ -31,12 +32,15 @@ export function Header() {
 
   return (
     <header className="topbar" ref={ref}>
-      <div className="brand">
-        <Link to="/" className="wordmark">
+      <Link to="/" className="brand">
+        <svg viewBox="0 0 64 64" width={18} height={18} aria-hidden="true">
+          <path d="M20 8H44L56 20V44L44 56H20L8 44V20Z" fill="none" stroke="var(--accent)" strokeWidth={6} />
+        </svg>
+        <span className="wordmark">
           Sanctuary<span>DB</span>
-        </Link>
-        <p className="sub">{metaLine}</p>
-      </div>
+        </span>
+      </Link>
+      <span className="topbar-divider" aria-hidden="true" />
       <nav className="nav">
         <Link
           to="/"
@@ -56,6 +60,7 @@ export function Header() {
         </Link>
       </nav>
       <div className="header-slot" />
+      <p className="sub">{metaLine}</p>
     </header>
   );
 }

@@ -19,7 +19,7 @@ export function UnitCard({ unit: u, iconManifest, onOpen }: UnitCardProps) {
       style={{ '--fc': FACTION_COLOURS[u.faction] } as React.CSSProperties}
       onClick={() => onOpen(u.id)}
     >
-      <UnitIcon icon={u.icon} faction={u.faction} manifest={iconManifest} size={38} muted={muted} />
+      <UnitIcon icon={u.icon} faction={u.faction} manifest={iconManifest} size={32} muted={muted} />
       <span className="who">
         <h4>
           {u.name ?? shortName(u)}

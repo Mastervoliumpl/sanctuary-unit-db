@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { loadData } from '../lib/data';
 import { setMetaLine } from '../lib/meta-line';
@@ -145,48 +146,37 @@ function BoardPage() {
 
   return (
     <>
-      <div className="pagebar">
-        <div className="search">
-          <input
-            type="search"
-            id="search"
-            placeholder="Search name, id, role or tag…"
-            autoComplete="off"
-            spellCheck={false}
-            value={search.q ?? ''}
-            onChange={(e) => patch({ q: e.target.value.trim() || undefined })}
-          />
-        </div>
+      <HeaderSearch value={search.q ?? ''} onChange={(q) => patch({ q: q.trim() || undefined })} />
+
+      <div className="toolbar">
+        <span>
+          {shownCount} of {loaded.data.units.length} units · {visible.length} slots
+        </span>
+        <label className="sortctl">
+          Order
+          <select
+            value={sort}
+            onChange={(e) =>
+              patch({ sort: e.target.value === 'default' ? undefined : (e.target.value as SortKey) })
+            }
+          >
+            <option value="default">Tech tree</option>
+            <option value="alloys">Alloys</option>
+            <option value="energy">Energy</option>
+            <option value="buildTime">Build time</option>
+            <option value="health">Health</option>
+            <option value="dps">DPS</option>
+            <option value="projectileSpeed">Projectile speed</option>
+            <option value="turnRate">Turn rate (unit)</option>
+            <option value="traverseSpeed">Turn rate (weapon)</option>
+          </select>
+        </label>
       </div>
 
       <main className="layout">
         <FilterSidebar units={loaded.data.units} filters={filters} onToggle={toggle} onReset={reset} />
 
         <section className="results">
-          <div className="results-head">
-            <span>
-              {shownCount} of {loaded.data.units.length} units · {visible.length} slots
-            </span>
-            <label className="sortctl">
-              Order
-              <select
-                value={sort}
-                onChange={(e) =>
-                  patch({ sort: e.target.value === 'default' ? undefined : (e.target.value as SortKey) })
-                }
-              >
-                <option value="default">Tech tree</option>
-                <option value="alloys">Alloys</option>
-                <option value="energy">Energy</option>
-                <option value="buildTime">Build time</option>
-                <option value="health">Health</option>
-                <option value="dps">DPS</option>
-                <option value="projectileSpeed">Projectile speed</option>
-                <option value="turnRate">Turn rate (unit)</option>
-                <option value="traverseSpeed">Turn rate (weapon)</option>
-              </select>
-            </label>
-          </div>
           {visible.length === 0 ? (
             <p className="empty">No units match those filters.</p>
           ) : (
@@ -203,6 +193,45 @@ function BoardPage() {
 
       {selected && <DetailPanel unit={selected} loaded={loaded} onOpen={openDetail} onClose={closeDetail} />}
     </>
+  );
+}
+
+/* ---------------- header search ---------------- */
+
+// Search lives in the shared header, but only this page uses it, so the field
+// is portalled into the header's slot rather than baked into <Header>. The
+// header is part of the SSR'd shell, so its slot element is already in the DOM
+// by the time this (ssr: false) page renders on the client.
+function HeaderSearch({ value, onChange }: { value: string; onChange: (q: string) => void }) {
+  const [slot] = useState(() => document.querySelector('.header-slot'));
+
+  if (!slot) return null;
+  return createPortal(
+    <div className="search">
+      <svg viewBox="0 0 16 16" width={13} height={13} aria-hidden="true">
+        <circle cx={7} cy={7} r={5} fill="none" stroke="currentColor" strokeWidth={1.6} />
+        <line
+          x1={11}
+          y1={11}
+          x2={14.5}
+          y2={14.5}
+          stroke="currentColor"
+          strokeWidth={1.6}
+          strokeLinecap="round"
+        />
+      </svg>
+      <input
+        type="search"
+        id="search"
+        placeholder="Search name, id, role or tag…"
+        autoComplete="off"
+        spellCheck={false}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <kbd title="Press / to search">/</kbd>
+    </div>,
+    slot,
   );
 }
 

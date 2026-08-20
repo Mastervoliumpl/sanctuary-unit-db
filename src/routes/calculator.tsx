@@ -16,16 +16,19 @@ import {
   unpackRows,
   type CountedRow,
 } from '../lib/calc';
-import type { Unit } from '../lib/types';
+import type { Faction, Unit } from '../lib/types';
+import { FACTION_COLOURS } from '../components/UnitIcon';
 import { Combobox } from '../components/Combobox';
 
 // The whole setup lives in the URL — same params as the pre-framework site
-// (t / p / a / e), so a build can be shared or bookmarked.
+// (t / p / a / e, plus f for the faction lens), so a build can be shared or
+// bookmarked.
 interface CalcSearch {
   t?: string;
   p?: string;
   a?: string;
   e?: string;
+  f?: string;
 }
 
 const str = (v: unknown): string | undefined => {
@@ -40,6 +43,7 @@ export const Route = createFileRoute('/calculator')({
     p: str(raw.p),
     a: str(raw.a),
     e: str(raw.e),
+    f: str(raw.f),
   }),
   head: () => ({
     meta: [
@@ -63,7 +67,17 @@ function CalculatorPage() {
   const patch = (p: Partial<CalcSearch>) =>
     navigate({ search: (prev: CalcSearch) => ({ ...prev, ...p }), replace: true });
 
-  const targets = useMemo(() => targetOptions(data.units), [data]);
+  // Optional faction lens: narrows every picker's options without touching
+  // what's already chosen, so a shared cross-faction setup survives it. Off
+  // (all factions) unless the URL says otherwise.
+  const factions = useMemo(() => [...new Set(data.units.map((u) => u.faction))], [data]);
+  const faction = search.f && factions.includes(search.f as Faction) ? (search.f as Faction) : undefined;
+  const pool = useMemo(
+    () => (faction ? data.units.filter((u) => u.faction === faction) : data.units),
+    [data, faction],
+  );
+
+  const targets = useMemo(() => targetOptions(pool), [pool]);
 
   // Behave like a select: a stale URL, or a builder that cannot make the newly
   // chosen target, falls back to the first valid option rather than sitting
@@ -82,8 +96,8 @@ function CalculatorPage() {
 
   const [assistPick, setAssistPick] = useState<string | null>(null);
   const [econPick, setEconPick] = useState<string | null>(null);
-  const assistOpts = useMemo(() => assistOptions(data.units), [data]);
-  const econOpts = useMemo(() => econOptions(data.units), [data]);
+  const assistOpts = useMemo(() => assistOptions(pool), [pool]);
+  const econOpts = useMemo(() => econOptions(pool), [pool]);
 
   useEffect(() => {
     setMetaLine(
@@ -116,67 +130,133 @@ function CalculatorPage() {
   const econ = economyResult(economy, byId);
 
   return (
-    <main className="calc">
-      <section className="panel">
-        <h2>Build time &amp; drain</h2>
-        <div className="field">
-          <label>Building</label>
-          <Combobox
-            options={targets}
-            value={targetId}
-            placeholder="Search units…"
-            onPick={(id) => {
-              // The valid builders change with the target, and the previous
-              // pick may no longer be able to start this build.
-              const nextTarget = byId.get(id);
-              const keepPrimary =
-                primaryId && nextTarget?.builtBy.includes(primaryId) ? primaryId : undefined;
-              patch({ t: id, p: keepPrimary });
-            }}
-          />
-        </div>
+    <>
+      <div className="toolbar">
+        <span>
+          {build
+            ? `${nameOf(build.target)} · ${fmt(build.power)} build power · ${duration(build.seconds)}`
+            : 'Build time, drain and economy planning'}
+        </span>
+        <span className="toolbar-controls">
+          <span className="chips">
+            {factions.map((fc) => (
+              <button
+                type="button"
+                className="chip"
+                key={fc}
+                aria-pressed={faction === fc}
+                title={`Only show ${fc} options in the pickers`}
+                onClick={() => {
+                  // A pending pick may not exist in the narrowed lists.
+                  setAssistPick(null);
+                  setEconPick(null);
+                  patch({ f: faction === fc ? undefined : fc });
+                }}
+              >
+                <span className="dot" style={{ background: FACTION_COLOURS[fc] ?? '#888' }} />
+                {fc}
+              </button>
+            ))}
+          </span>
+          <button type="button" className="linkish" onClick={() => navigate({ search: {}, replace: true })}>
+            Reset
+          </button>
+        </span>
+      </div>
 
-        <div className="field">
-          <label>Built by</label>
-          <Combobox
-            options={primaries}
-            value={primaryId}
-            placeholder="Search builders…"
-            empty="Nothing in the game can build this"
-            onPick={(id) => patch({ p: id })}
-          />
-        </div>
+      <main className="calc">
+        <section className="calc-col">
+          <h2>Build time &amp; drain</h2>
+          <div className="field">
+            <label>Building</label>
+            <Combobox
+              options={targets}
+              value={targetId}
+              placeholder="Search units…"
+              onPick={(id) => {
+                // The valid builders change with the target, and the previous
+                // pick may no longer be able to start this build.
+                const nextTarget = byId.get(id);
+                const keepPrimary =
+                  primaryId && nextTarget?.builtBy.includes(primaryId) ? primaryId : undefined;
+                patch({ t: id, p: keepPrimary });
+              }}
+            />
+          </div>
 
-        <div className="field">
-          <label>
-            Assisted by <span className="opt">optional</span>
-          </label>
+          <div className="field">
+            <label>Built by</label>
+            <Combobox
+              options={primaries}
+              value={primaryId}
+              placeholder="Search builders…"
+              empty="Nothing in the game can build this"
+              onPick={(id) => patch({ p: id })}
+            />
+          </div>
+
+          <div className="field">
+            <label>
+              Assisted by <span className="opt">optional</span>
+            </label>
+            <RowList
+              rows={assists}
+              byId={byId}
+              kind="assist"
+              onBump={(i, d) => bumpRow('a', assists, i, d)}
+              onDrop={(i) => dropRow('a', assists, i)}
+            />
+            <div className="add-row">
+              <div className="grow">
+                <Combobox
+                  options={assistOpts}
+                  value={assistPick}
+                  placeholder="Search assisting units…"
+                  onPick={setAssistPick}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => addRow('a', assists, assistPick ?? assistOpts[0]?.value ?? null)}
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="calc-col">
+          <h2>Economy</h2>
           <RowList
-            rows={assists}
+            rows={economy}
             byId={byId}
-            kind="assist"
-            onBump={(i, d) => bumpRow('a', assists, i, d)}
-            onDrop={(i) => dropRow('a', assists, i)}
+            kind="economy"
+            onBump={(i, d) => bumpRow('e', economy, i, d)}
+            onDrop={(i) => dropRow('e', economy, i)}
           />
           <div className="add-row">
             <div className="grow">
               <Combobox
-                options={assistOpts}
-                value={assistPick}
-                placeholder="Search assisting units…"
-                onPick={setAssistPick}
+                options={econOpts}
+                value={econPick}
+                placeholder="Search structures…"
+                onPick={setEconPick}
               />
             </div>
             <button
               type="button"
-              onClick={() => addRow('a', assists, assistPick ?? assistOpts[0]?.value ?? null)}
+              onClick={() => addRow('e', economy, econPick ?? econOpts[0]?.value ?? null)}
             >
-              Add
+              Add structure
             </button>
           </div>
-        </div>
+        </section>
 
-        <div className="readout">
+        <aside className="calc-rail">
+          <h2>Can I afford it?</h2>
+          <Verdict build={build} econ={econ} hasEconomy={economy.length > 0} />
+
+          <h2>Build readout</h2>
           {build ? (
             <dl className="statgrid">
               <div>
@@ -215,33 +295,8 @@ function CalculatorPage() {
           ) : (
             <p className="empty-row">Pick something to build and who builds it.</p>
           )}
-        </div>
-      </section>
 
-      <section className="panel">
-        <h2>Economy</h2>
-        <RowList
-          rows={economy}
-          byId={byId}
-          kind="economy"
-          onBump={(i, d) => bumpRow('e', economy, i, d)}
-          onDrop={(i) => dropRow('e', economy, i)}
-        />
-        <div className="add-row">
-          <div className="grow">
-            <Combobox
-              options={econOpts}
-              value={econPick}
-              placeholder="Search structures…"
-              onPick={setEconPick}
-            />
-          </div>
-          <button type="button" onClick={() => addRow('e', economy, econPick ?? econOpts[0]?.value ?? null)}>
-            Add structure
-          </button>
-        </div>
-
-        <div className="readout">
+          <h2>Economy readout</h2>
           {economy.length ? (
             <>
               <dl className="statgrid">
@@ -276,16 +331,9 @@ function CalculatorPage() {
           ) : (
             <p className="empty-row">Add structures to see net income.</p>
           )}
-        </div>
-      </section>
-
-      <section className="panel wide">
-        <h2>Can I afford it?</h2>
-        <div className="readout">
-          <Verdict build={build} econ={econ} hasEconomy={economy.length > 0} />
-        </div>
-      </section>
-    </main>
+        </aside>
+      </main>
+    </>
   );
 }
 
@@ -366,7 +414,8 @@ function RowList({
 }
 
 // The useful question isn't the cost, it's whether the economy sustains it — a
-// build drawing more than net income stalls and stretches out.
+// build drawing more than net income stalls and stretches out. The rail leads
+// with that answer as one big figure.
 function Verdict({
   build,
   econ,
@@ -376,7 +425,16 @@ function Verdict({
   econ: ReturnType<typeof economyResult>;
   hasEconomy: boolean;
 }) {
-  if (!build || !hasEconomy) return <p className="empty-row">Fill in both panels above.</p>;
+  if (!build) return <p className="empty-row">Pick something to build and who builds it.</p>;
+
+  if (!hasEconomy)
+    return (
+      <div className="verdict">
+        <span className="verdict-label">Unconstrained build time</span>
+        <span className="verdict-big">{duration(build.seconds)}</span>
+        <p className="note">Add economy structures to see whether the drain is sustainable.</p>
+      </div>
+    );
 
   const lines = (
     [
@@ -407,18 +465,13 @@ function Verdict({
   const realLabel = Number.isFinite(real) ? duration(real) : 'never';
 
   return (
-    <>
+    <div className="verdict">
+      <span className="verdict-label">At this income</span>
+      <span className={`verdict-big ${worst > 1 ? 'bad' : 'good'}`}>{realLabel}</span>
+      {worst > 1 && Number.isFinite(real) ? (
+        <span className="verdict-vs">vs {duration(build.seconds)} unconstrained</span>
+      ) : null}
       <dl className="kv">{lines}</dl>
-      <dl className="statgrid" style={{ marginTop: 12 }}>
-        <div>
-          <dt>Unconstrained</dt>
-          <dd>{duration(build.seconds)}</dd>
-        </div>
-        <div>
-          <dt>At this income</dt>
-          <dd className={worst > 1 ? 'bad' : 'good'}>{realLabel}</dd>
-        </div>
-      </dl>
-    </>
+    </div>
   );
 }

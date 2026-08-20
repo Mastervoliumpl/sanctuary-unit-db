@@ -3,7 +3,17 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src/routeTree.gen.ts', 'test-results', 'playwright-report'] },
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      'src/routeTree.gen.ts',
+      'test-results',
+      'playwright-report',
+      // Design handoff bundles are reference material, not code to lint.
+      'Frontend modernization options',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
