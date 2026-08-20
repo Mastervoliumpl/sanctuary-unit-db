@@ -11,7 +11,6 @@
 // never have started itself, so those two roles are picked from different pools.
 
 import type { Unit } from './types';
-import { fmt } from './format';
 
 export interface CountedRow {
   id: string;
@@ -21,49 +20,13 @@ export interface CountedRow {
 export const shown = (u: Unit) => u.status !== 'no-model';
 export const buildable = (u: Unit) => u.builtBy.length > 0 && u.buildTime > 0;
 export const canAssist = (u: Unit) => u.canAssist && (u.buildPower ?? 0) > 0;
-export const isEconomic = (u: Unit) => Boolean(u.production || u.upkeep || u.storage);
 
-export const nameOf = (u: Unit): string =>
-  `${u.faction} · ${u.tier ? `T${u.tier} ` : ''}${u.name ?? u.displayName.replace(/^Tier \d+:\s*/, '') ?? u.id}`;
-
-export interface ComboOption {
-  value: string;
-  label: string;
-  hint: string;
-  search: string;
-}
-
-const toOption = (u: Unit, hint?: (u: Unit) => string): ComboOption => ({
-  value: u.id,
-  label: nameOf(u),
-  hint: hint?.(u) ?? '',
-  // Ids and internal names are searchable too, since people quote them.
-  search: [nameOf(u), u.id, u.displayName, u.internalName].filter(Boolean).join(' ').toLowerCase(),
-});
-
-const sortOpts = (list: ComboOption[]) => list.sort((a, b) => a.label.localeCompare(b.label));
-
-const power = (u: Unit) => `${fmt(u.buildPower)} build power`;
-
-export const targetOptions = (units: Unit[]): ComboOption[] =>
-  sortOpts(units.filter((u) => shown(u) && buildable(u)).map((u) => toOption(u)));
-
-// Only what the game says can actually start this build.
-export const primaryOptions = (target: Unit | undefined, byId: Map<string, Unit>): ComboOption[] =>
-  target
-    ? sortOpts(
-        target.builtBy
-          .map((id) => byId.get(id))
-          .filter((u): u is Unit => Boolean(u))
-          .map((u) => toOption(u, power)),
-      )
-    : [];
-
-export const assistOptions = (units: Unit[]): ComboOption[] =>
-  sortOpts(units.filter((u) => shown(u) && canAssist(u)).map((u) => toOption(u, power)));
-
-export const econOptions = (units: Unit[]): ComboOption[] =>
-  sortOpts(units.filter((u) => shown(u) && isEconomic(u)).map((u) => toOption(u)));
+// The economy picker's split: generators/extractors are what almost every
+// setup needs, while upkeep-only structures (shields, radar, factories idling)
+// are the secondary "energy users" pool.
+export const isProducer = (u: Unit) => (u.production?.alloys ?? 0) > 0 || (u.production?.energy ?? 0) > 0;
+export const isConsumer = (u: Unit) =>
+  !isProducer(u) && ((u.upkeep?.alloys ?? 0) > 0 || (u.upkeep?.energy ?? 0) > 0);
 
 /* ---------------- maths ---------------- */
 

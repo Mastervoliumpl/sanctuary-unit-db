@@ -6,12 +6,13 @@ export function fmt(n: number | null | undefined, digits = 2): string {
 
 /** Seconds as a compact human duration — build times run from 1s to hours. */
 export function duration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return '—';
-  if (seconds < 60) return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds % 60);
-  if (m < 60) return `${m}m ${String(s).padStart(2, '0')}s`;
-  return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
+  if (!Number.isFinite(seconds) || seconds < 0) return '—';
+  if (seconds < 60) return `${fmt(seconds, 1)} s`;
+  const total = Math.round(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  if (m < 60) return `${m} m ${s} s`;
+  return `${Math.floor(m / 60)} h ${m % 60} m`;
 }
 
 // Many structures have no proper name, only a "Tier 2: Land Factory" label.

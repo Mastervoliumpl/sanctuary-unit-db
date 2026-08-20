@@ -60,10 +60,10 @@ describe('URL row packing', () => {
 
 describe('duration formatting', () => {
   it('covers the ranges build times actually span', () => {
-    expect(duration(8.4)).toBe('8.4s');
-    expect(duration(140)).toBe('2m 20s');
-    expect(duration(1000)).toBe('16m 40s'); // the README's stalled-factory example
-    expect(duration(7325)).toBe('2h 02m');
+    expect(duration(8.4)).toBe('8.4 s');
+    expect(duration(140)).toBe('2 m 20 s');
+    expect(duration(1000)).toBe('16 m 40 s'); // the README's stalled-factory example
+    expect(duration(7325)).toBe('2 h 2 m');
     expect(duration(Infinity)).toBe('—');
   });
 });

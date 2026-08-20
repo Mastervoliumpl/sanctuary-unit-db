@@ -41,11 +41,18 @@ test('calculator restores a shared setup and computes the documented example', a
   const errors = collectErrors(page);
 
   // The README's worked example: T3 Land Factory, T3 Engineer + 2 T2 Engineers
-  // = 40 build power -> 1m 45s.
+  // = 40 build power -> 1 m 45 s.
   await page.goto('/calculator?t=ues3511&p=uel3501&a=uel2501:2');
-  await expect(page.locator('.combo-input').first()).toHaveValue('EDA · T3 Land Factory');
-  await expect(page.locator('.calc-rail')).toContainText('1m 45s');
-  await expect(page.locator('.calc-rail')).toContainText('40');
+  await expect(page.locator('.select-btn')).toContainText('Land Factory');
+  await expect(page.locator('.calc-rail')).toContainText('1 m 45 s');
+  await expect(page.locator('.calc-rail')).toContainText('40 (20+20)');
+
+  // Copy link pins the derived defaults (builder, economy prefill) into the
+  // URL so the shared setup can't drift under a future data update.
+  await page.getByRole('button', { name: 'Copy link' }).click();
+  await page.waitForURL(/p=uel3501/);
+  expect(page.url()).toContain('t=ues3511');
+  expect(page.url()).toContain('e=');
 
   expect(errors).toEqual([]);
 });
