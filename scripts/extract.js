@@ -622,8 +622,12 @@ function resolveBuildTrees(units) {
       }
     }
 
-    // Structure upgrades are a build action too, so they belong in the tree.
-    if (builder.upgradesTo && byId.has(builder.upgradesTo)) targets.add(builder.upgradesTo);
+    // The canBuild expression also matches the structure's own upgrade target —
+    // that's how the game surfaces the upgrade inside the factory's build menu.
+    // But an upgrade transforms the structure in place; it is not the factory
+    // constructing a sibling, so it stays out of builds/builtBy and is carried
+    // by upgradesTo alone.
+    if (builder.upgradesTo) targets.delete(builder.upgradesTo);
 
     targets.delete(builder.id);
     builder.builds = [...targets].sort();

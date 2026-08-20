@@ -166,17 +166,22 @@ function CalculatorPage() {
   const target = targetId ? byId.get(targetId) : undefined;
 
   // Step 3 — one-tap builder chips, lowest tier first. The tier prefix matters:
-  // factions have same-named engineers at several tiers.
-  const builders = useMemo(
-    () =>
-      target
-        ? target.builtBy
-            .map((id) => byId.get(id))
-            .filter((u): u is Unit => Boolean(u))
-            .sort((a, b) => (a.tier ?? 0) - (b.tier ?? 0) || (a.buildPower ?? 0) - (b.buildPower ?? 0))
-        : [],
-    [target, byId],
-  );
+  // factions have same-named engineers at several tiers. builtBy is fresh
+  // construction only; the structure this target upgrades from can also start
+  // it — by turning into it in place — so it joins the chips, marked as the
+  // upgrade path rather than pretending a factory builds a sibling factory.
+  const upgradeSourceOf = useMemo(() => {
+    const m = new Map<string, Unit>();
+    for (const u of data.units) if (u.upgradesTo) m.set(u.upgradesTo, u);
+    return m;
+  }, [data]);
+  const builders = useMemo(() => {
+    if (!target) return [];
+    const list = target.builtBy.map((id) => byId.get(id)).filter((u): u is Unit => Boolean(u));
+    const upFrom = upgradeSourceOf.get(target.id);
+    if (upFrom && shown(upFrom) && (upFrom.buildPower ?? 0) > 0) list.push(upFrom);
+    return list.sort((a, b) => (a.tier ?? 0) - (b.tier ?? 0) || (a.buildPower ?? 0) - (b.buildPower ?? 0));
+  }, [target, byId, upgradeSourceOf]);
   const primary = (search.p && builders.find((u) => u.id === search.p)) || builders[0] || undefined;
 
   const assists = useMemo(() => unpackRows(search.a, byId), [search.a, byId]);
@@ -362,9 +367,14 @@ function CalculatorPage() {
                 className="builder-chip"
                 key={u.id}
                 aria-pressed={u.id === primary?.id}
+                title={u.upgradesTo === target?.id ? `Upgrades in place into ${label(target)}` : undefined}
                 onClick={() => patch({ p: u.id })}
               >
-                {(u.tier ? `T${u.tier} ` : '') + label(u)} <small>{fmt(u.buildPower)} bp</small>
+                {(u.tier ? `T${u.tier} ` : '') + label(u)}{' '}
+                <small>
+                  {u.upgradesTo === target?.id ? 'upgrade · ' : ''}
+                  {fmt(u.buildPower)} bp
+                </small>
               </button>
             ))}
           </div>
