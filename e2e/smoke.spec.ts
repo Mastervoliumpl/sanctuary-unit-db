@@ -47,12 +47,15 @@ test('calculator restores a shared setup and computes the documented example', a
   await expect(page.locator('.calc-rail')).toContainText('1 m 45 s');
   await expect(page.locator('.calc-rail')).toContainText('40 (20+20)');
 
-  // Copy link pins the derived defaults (builder, economy prefill) into the
-  // URL so the shared setup can't drift under a future data update.
+  // With no explicit builder the first chip auto-selects (the T2 factory's
+  // in-place upgrade); Copy link pins that derived choice into the URL so a
+  // shared setup can't drift under a future data update. Untouched sections
+  // stay absent.
+  await page.goto('/calculator?t=ues3511');
   await page.getByRole('button', { name: 'Copy link' }).click();
-  await page.waitForURL(/p=uel3501/);
+  await page.waitForURL(/p=ues2511/);
   expect(page.url()).toContain('t=ues3511');
-  expect(page.url()).toContain('e=');
+  expect(page.url()).not.toContain('e=');
 
   expect(errors).toEqual([]);
 });

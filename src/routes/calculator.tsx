@@ -20,8 +20,7 @@ import { FACTION_COLOURS, FACTION_ORDER, UnitIcon } from '../components/UnitIcon
 
 // The whole setup lives in the URL — same params as the pre-framework site
 // (t / p / a / e, plus f for the faction lens), so a build can be shared or
-// bookmarked. An absent `e` means the default economy prefill; clearing the
-// last structure writes `e=none` so the deliberate empty survives a reload.
+// bookmarked. Nothing is pre-chosen; an absent param just means "none yet".
 interface CalcSearch {
   t?: string;
   p?: string;
@@ -159,10 +158,9 @@ function CalculatorPage() {
   const targetPool = useMemo(() => pool.filter(buildable).sort(byTierName), [pool]);
   const assistPool = useMemo(() => pool.filter(canAssist), [pool]);
 
-  // Step 2 — the target. A stale URL falls back to the first valid option
-  // rather than sitting empty; the URL is only rewritten on a real pick.
-  const urlTarget = search.t && byId.has(search.t) && buildable(byId.get(search.t)!) ? search.t : null;
-  const targetId = urlTarget ?? targetPool[0]?.id ?? null;
+  // Step 2 — the target. Nothing is pre-chosen: the page starts empty and a
+  // stale URL id simply shows the empty state again.
+  const targetId = search.t && byId.has(search.t) && buildable(byId.get(search.t)!) ? search.t : null;
   const target = targetId ? byId.get(targetId) : undefined;
 
   // Step 3 — one-tap builder chips, lowest tier first. The tier prefix matters:
@@ -186,9 +184,8 @@ function CalculatorPage() {
 
   const assists = useMemo(() => unpackRows(search.a, byId), [search.a, byId]);
 
-  // Economy follows the target's faction (cross-faction economy is
-  // irrelevant), falling back to the faction chip. Untouched, it prefills a
-  // basic T1 income so the page lands on a live answer.
+  // Economy pools follow the target's faction (cross-faction economy is
+  // irrelevant), falling back to the faction chip.
   const econFaction: Faction | undefined = target?.faction ?? faction;
   const econBase = useMemo(
     () => (econFaction ? shownUnits.filter((u) => u.faction === econFaction) : pool),
@@ -197,21 +194,7 @@ function CalculatorPage() {
   const producerPool = useMemo(() => econBase.filter(isProducer), [econBase]);
   const consumerPool = useMemo(() => econBase.filter(isConsumer), [econBase]);
 
-  const defaultEconomy = useMemo(() => {
-    const t1 = econBase
-      .filter((u) => u.domain === 'Structure' && u.tier === 1 && isProducer(u))
-      .sort(byTierName);
-    const egen = t1.find((u) => (u.production?.energy ?? 0) > 0);
-    const agen = t1.find((u) => (u.production?.alloys ?? 0) > 0 && u.id !== egen?.id);
-    const rows: CountedRow[] = [];
-    if (egen) rows.push({ id: egen.id, count: 6 });
-    if (agen) rows.push({ id: agen.id, count: 4 });
-    return rows;
-  }, [econBase]);
-  const economy = useMemo(
-    () => (search.e === undefined ? defaultEconomy : search.e === 'none' ? [] : unpackRows(search.e, byId)),
-    [search.e, defaultEconomy, byId],
-  );
+  const economy = useMemo(() => unpackRows(search.e, byId), [search.e, byId]);
 
   useEffect(() => {
     setMetaLine(
@@ -221,8 +204,7 @@ function CalculatorPage() {
     );
   }, [data]);
 
-  const writeRows = (key: 'a' | 'e', next: CountedRow[]) =>
-    patch({ [key]: key === 'e' ? (packRows(next) ?? 'none') : packRows(next) });
+  const writeRows = (key: 'a' | 'e', next: CountedRow[]) => patch({ [key]: packRows(next) });
 
   const addRow = (key: 'a' | 'e', rows: CountedRow[], id: string) => {
     const hit = rows.find((r) => r.id === id);
@@ -248,9 +230,8 @@ function CalculatorPage() {
   const build = buildResult(target, primary, assists, byId);
   const econ = economyResult(economy, byId);
 
-  // Sharing: the URL only carries what was explicitly picked — defaults (the
-  // fallback target, the first builder chip, the economy prefill) are
-  // re-derived on load and could drift after a game patch. Copy link pins
+  // Sharing: the auto-selected builder chip is the one piece of state derived
+  // rather than picked, and it could drift after a game patch. Copy link pins
   // every current selection into the URL before putting it on the clipboard,
   // so the recipient sees exactly this setup.
   const [copied, setCopied] = useState(false);
@@ -261,7 +242,7 @@ function CalculatorPage() {
         t: targetId ?? undefined,
         p: primary?.id,
         a: packRows(assists),
-        e: packRows(economy) ?? 'none',
+        e: packRows(economy),
         f: faction,
       },
       replace: true,
@@ -360,6 +341,7 @@ function CalculatorPage() {
           )}
 
           <div className="calc-step">3 · Who starts it?</div>
+          {!target && <div className="col-empty">Pick a build target first.</div>}
           <div className="chip-row">
             {builders.map((u) => (
               <button
