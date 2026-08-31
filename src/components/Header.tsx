@@ -58,6 +58,14 @@ export function Header() {
         >
           Calculator
         </Link>
+        <Link
+          to="/maps"
+          className="navlink"
+          activeOptions={{ includeSearch: false }}
+          activeProps={{ className: 'navlink active' }}
+        >
+          Maps
+        </Link>
       </nav>
       <div className="header-slot" />
       <p className="sub">{metaLine}</p>

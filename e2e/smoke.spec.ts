@@ -37,6 +37,16 @@ test('unit board renders, filters via URL, and opens the detail panel', async ({
   expect(errors).toEqual([]);
 });
 
+test('maps page is prerendered and shows its empty state until maps are published', async ({ page }) => {
+  const errors = collectErrors(page);
+
+  await page.goto('/maps');
+  await expect(page.locator('.empty')).toContainText('No maps published yet');
+  await expect(page.locator('.toolbar')).toContainText('0 maps');
+
+  expect(errors).toEqual([]);
+});
+
 test('calculator restores a shared setup and computes the documented example', async ({ page }) => {
   const errors = collectErrors(page);
 

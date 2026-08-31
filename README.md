@@ -37,6 +37,24 @@ manually:
 SANCTUARY_PATH="D:/SteamLibrary/steamapps/common/Sanctuary Shattered Sun Demo" npm run extract
 ```
 
+## Publishing maps
+
+`/maps` lists community maps. The zips are not in the repo — each map is a
+GitHub release asset (tag `map-<slug>`), so downloads cost nothing and the
+GitHub API supplies live download counts. The repo carries only
+`public/data/maps.json` plus each map's preview and screenshots.
+
+```bash
+npm run addmap -- path/to/My_Map.zip                    # or the map folder itself
+npm run addmap -- My_Map.zip --shots a.jpg b.jpg --desc "Two lanes, one bridge."
+```
+
+The script reads everything else (name, author, size, player count, water)
+from the `.sanmap` inside, uploads the zip to the release, and updates
+`public/`; commit and push to publish. Re-running for the same map bumps its
+version and replaces the asset. It authenticates with `GITHUB_TOKEN` or the
+same stored credential `git push` uses.
+
 ## Pages
 
 Routes are files in `src/routes/` (TanStack Router file-based routing); both
