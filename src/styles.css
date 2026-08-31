@@ -1387,6 +1387,27 @@ img.unit-icon[data-muted='true'] {
   margin-top: 14px;
 }
 
+/* A short standing note above the grid, and on a converted map's own page. */
+.map-note {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--energy);
+  border-radius: 7px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-dim);
+  max-width: 900px;
+}
+.map-note strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.map-detail-info .map-note {
+  margin-top: 10px;
+}
+
 /* How-to-install card: collapsed by default — it matters once. */
 .install {
   margin-bottom: 12px;

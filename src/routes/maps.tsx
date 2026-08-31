@@ -66,6 +66,11 @@ const SIZE_LABELS: Record<string, string> = {
   '2048': 'Huge (2048)',
 };
 
+// The FA conversions ship CC0 stand-in textures rather than the originals'
+// art. That is a licensing necessity, but it changes how they look, so say so
+// instead of leaving people to wonder why a remembered map reads differently.
+const isConverted = (m: MapEntry) => /converted from supreme commander/i.test(m.author);
+
 const SORTS: Record<string, (a: MapEntry, b: MapEntry) => number> = {
   newest: (a, b) => b.addedAt.localeCompare(a.addedAt),
   name: (a, b) => a.name.localeCompare(b.name),
@@ -207,6 +212,7 @@ function MapsPage() {
 
         <section className="results maps">
           <InstallHelp />
+          {maps.some(isConverted) && <TextureNote />}
           {data.maps.length === 0 ? (
             <p className="empty">No maps published yet — the first ones are on their way.</p>
           ) : maps.length === 0 ? (
@@ -221,6 +227,16 @@ function MapsPage() {
         </section>
       </main>
     </>
+  );
+}
+
+function TextureNote() {
+  return (
+    <p className="map-note">
+      <strong>On the Forged Alliance conversions:</strong> their ground textures are open-licence (CC0)
+      stand-ins, not the originals' art, so terrain can read better or worse than the map you remember. The
+      heightmap, layout, spawns and resources are exact.
+    </p>
   );
 }
 
@@ -302,6 +318,7 @@ function MapDetail({ map: m, downloads }: { map: MapEntry; downloads: number | u
           {/* Verbatim credits from the .sanmap — sometimes a name, sometimes a
           full provenance line, so no "by" prefix. */}
           {m.author && <p className="map-author">{m.author}</p>}
+          {isConverted(m) && <TextureNote />}
           {m.description && <p className="map-desc">{m.description}</p>}
           <div className="rgrid">
             <div>
