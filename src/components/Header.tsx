@@ -1,14 +1,11 @@
 // Shared site chrome, rendered once by the root route: one dense 46px bar with
-// the brand, nav, a centred slot (the units page portals its search here) and
-// the page-owned meta line via setMetaLine().
+// the brand, nav and a centred slot (the units page portals its search here).
 
 import { useEffect, useRef } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useMetaLine } from '../lib/meta-line';
 
 export function Header() {
   const ref = useRef<HTMLElement>(null);
-  const metaLine = useMetaLine();
 
   // Sticky sidebars and column headers sit below the bar, whose height depends
   // on the viewport (it wraps when narrow), so publish the measured height
@@ -68,7 +65,6 @@ export function Header() {
         </Link>
       </nav>
       <div className="header-slot" />
-      <p className="sub">{metaLine}</p>
     </header>
   );
 }

@@ -132,18 +132,49 @@ function scanUnitModels(gameDir) {
 
   for (const dir of dataDirs) {
     // Scenes share assets, so read them all in case a unit appears in only one.
-    // Each is read and released in turn — they run to ~100 MB apiece.
-    for (const file of fs.readdirSync(dir).filter((f) => /^level\d+$/.test(f))) {
-      let text;
-      try {
-        text = fs.readFileSync(path.join(dir, file)).toString('latin1');
-      } catch {
-        continue;
+    // The Playtest build moved unit art out of Unity's `levelN` scenes and into
+    // Gamedata/*.sanpack bundles, so scan both layouts.
+    const files = fs
+      .readdirSync(dir)
+      .filter((f) => /^level\d+$/.test(f))
+      .map((f) => path.join(dir, f));
+
+    const packs = path.join(dir, 'Gamedata');
+    if (fs.existsSync(packs)) {
+      for (const f of fs.readdirSync(packs)) {
+        if (f.endsWith('.sanpack')) files.push(path.join(packs, f));
       }
-      for (const match of text.matchAll(pattern)) found.add(match[0]);
     }
+
+    for (const file of files) scanForIds(file, pattern, found);
   }
   return found;
+}
+
+// Read in chunks: these files run from ~100 MB to well over a gigabyte, past
+// the point where the whole thing fits in one JS string. Chunks overlap by a
+// name's width so an id straddling a boundary is still matched.
+function scanForIds(file, pattern, found) {
+  const CHUNK = 64 * 1024 * 1024;
+  const OVERLAP = 32;
+
+  let fd;
+  try {
+    fd = fs.openSync(file, 'r');
+    const size = fs.fstatSync(fd).size;
+    const buffer = Buffer.alloc(Math.min(CHUNK, size));
+
+    for (let offset = 0; offset < size; offset += CHUNK - OVERLAP) {
+      const bytes = fs.readSync(fd, buffer, 0, Math.min(buffer.length, size - offset), offset);
+      if (bytes <= 0) break;
+      const text = buffer.subarray(0, bytes).toString('latin1');
+      for (const match of text.matchAll(pattern)) found.add(match[0]);
+    }
+  } catch {
+    // An unreadable asset file just contributes no ids.
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
 }
 
 // Adjacency bonuses, from host/systems/adjacencyBuffs.lua.

@@ -7,7 +7,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const GAME_DIRS = ['Sanctuary Shattered Sun Demo', 'Sanctuary Shattered Sun'];
+// Newest branch first: the Playtest is the live build, the Demo is the older
+// public one. Whichever is installed, the first match wins.
+const GAME_DIRS = [
+  'Sanctuary Shattered Sun Playtest',
+  'Sanctuary Shattered Sun',
+  'Sanctuary Shattered Sun Demo',
+];
 
 const STEAM_ROOTS = [
   'C:/Program Files (x86)/Steam',

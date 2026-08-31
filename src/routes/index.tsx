@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useMemo } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { loadData } from '../lib/data';
-import { setMetaLine } from '../lib/meta-line';
 import {
   DEFAULT_STATUS,
   DOMAIN_NAMES,
@@ -19,6 +17,7 @@ import type { Faction, Unit } from '../lib/types';
 import { FACTION_COLOURS } from '../components/UnitIcon';
 import { UnitCard } from '../components/UnitCard';
 import { DetailPanel } from '../components/DetailPanel';
+import { HeaderSearch } from '../components/HeaderSearch';
 
 // Filters, sort, search and the open unit all live in the URL — same param
 // names and comma-joined encoding as the pre-framework site, so shared links
@@ -101,16 +100,6 @@ function BoardPage() {
   const factions = activeFactions(filters.faction);
   const shownCount = visible.reduce((n, g) => n + g.units.length, 0);
 
-  useEffect(() => {
-    const { data } = loaded;
-    setMetaLine(
-      `${data.meta.unitCount} units · ` +
-        `${data.units.filter((u) => u.status === 'in-game').length} in game, ` +
-        `${data.units.filter((u) => u.status === 'in-progress').length} in progress · ` +
-        `extracted ${new Date(data.meta.generatedAt).toLocaleDateString()}`,
-    );
-  }, [loaded]);
-
   const openDetail = (id: string) => patch({ unit: id });
   const closeDetail = () => patch({ unit: undefined });
   const selected = search.unit ? loaded.byId.get(search.unit) : undefined;
@@ -118,10 +107,6 @@ function BoardPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && search.unit) closeDetail();
-      if (e.key === '/' && document.activeElement?.id !== 'search') {
-        e.preventDefault();
-        document.getElementById('search')?.focus();
-      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -146,7 +131,11 @@ function BoardPage() {
 
   return (
     <>
-      <HeaderSearch value={search.q ?? ''} onChange={(q) => patch({ q: q.trim() || undefined })} />
+      <HeaderSearch
+        value={search.q ?? ''}
+        onChange={(q) => patch({ q: q.trim() || undefined })}
+        placeholder="Search name, id, role or tag…"
+      />
 
       <div className="toolbar">
         <span>
@@ -193,45 +182,6 @@ function BoardPage() {
 
       {selected && <DetailPanel unit={selected} loaded={loaded} onOpen={openDetail} onClose={closeDetail} />}
     </>
-  );
-}
-
-/* ---------------- header search ---------------- */
-
-// Search lives in the shared header, but only this page uses it, so the field
-// is portalled into the header's slot rather than baked into <Header>. The
-// header is part of the SSR'd shell, so its slot element is already in the DOM
-// by the time this (ssr: false) page renders on the client.
-function HeaderSearch({ value, onChange }: { value: string; onChange: (q: string) => void }) {
-  const [slot] = useState(() => document.querySelector('.header-slot'));
-
-  if (!slot) return null;
-  return createPortal(
-    <div className="search">
-      <svg viewBox="0 0 16 16" width={13} height={13} aria-hidden="true">
-        <circle cx={7} cy={7} r={5} fill="none" stroke="currentColor" strokeWidth={1.6} />
-        <line
-          x1={11}
-          y1={11}
-          x2={14.5}
-          y2={14.5}
-          stroke="currentColor"
-          strokeWidth={1.6}
-          strokeLinecap="round"
-        />
-      </svg>
-      <input
-        type="search"
-        id="search"
-        placeholder="Search name, id, role or tag…"
-        autoComplete="off"
-        spellCheck={false}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <kbd title="Press / to search">/</kbd>
-    </div>,
-    slot,
   );
 }
 

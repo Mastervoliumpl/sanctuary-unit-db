@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { loadData } from '../lib/data';
-import { setMetaLine } from '../lib/meta-line';
 import { duration, fmt, shortName } from '../lib/format';
 import {
   buildResult,
@@ -173,14 +172,6 @@ function CalculatorPage() {
   const consumerPool = useMemo(() => econBase.filter(isConsumer), [econBase]);
 
   const economy = useMemo(() => unpackRows(search.e, byId), [search.e, byId]);
-
-  useEffect(() => {
-    setMetaLine(
-      `${data.units.filter((u) => u.builtBy.length).length} buildable · ` +
-        `${data.units.filter((u) => u.canAssist).length} can assist · ` +
-        `extracted ${new Date(data.meta.generatedAt).toLocaleDateString()}`,
-    );
-  }, [data]);
 
   const writeRows = (key: 'a' | 'e', next: CountedRow[]) => patch({ [key]: packRows(next) });
 

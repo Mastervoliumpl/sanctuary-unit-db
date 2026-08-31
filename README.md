@@ -20,7 +20,7 @@ npm install
 npm run dev       # Vite dev server at http://localhost:5173
 npm test          # unit tests over the calculators, grouping and data invariants
 npm run typecheck # tsc
-npm run build     # prerender both routes to dist/client/
+npm run build     # prerender every route to dist/client/
 npm run verify    # check public/ data + art are complete (no game needed)
 
 npm run refresh   # extract + icons: regenerate data from a local game install
@@ -29,8 +29,9 @@ npm run refresh   # extract + icons: regenerate data from a local game install
 `refresh` is `npm run extract` (game data → `public/data/units.json`) followed by
 `npm run icons` (`icons-src/` → `public/icons/`, plus both manifests).
 
-`extract` finds the game automatically by reading Steam's `libraryfolders.vdf`.
-If it can't (non-standard install, or you copied the files elsewhere), point it
+`extract` finds the game automatically by reading Steam's `libraryfolders.vdf`,
+preferring the Playtest branch over the older Demo when both are installed. If
+it can't (non-standard install, or you copied the files elsewhere), point it
 manually:
 
 ```bash
@@ -64,8 +65,8 @@ the copy inside the zip is never touched.
 
 ## Pages
 
-Routes are files in `src/routes/` (TanStack Router file-based routing); both
-are prerendered at build time and hydrate into an SPA.
+Routes are files in `src/routes/` (TanStack Router file-based routing); each is
+prerendered at build time and hydrates into an SPA.
 
 | Page          | Route file                  | What it does                              |
 | ------------- | --------------------------- | ----------------------------------------- |
@@ -162,12 +163,18 @@ out, so read this before changing any path:
 | `availableUnits.lua` | 283 entries, `OK` / `NO_MODEL` / `OK_PENDING_APPROVAL` | 270 entries, freeform notes             |
 | `canBuild` grammar   | AND, **OR and parentheses**                            | AND only                                |
 | Maps                 | 93                                                     | 0 (baked into `level0–10` scenes)       |
-| Unit models / icons  | **none**                                               | all of them                             |
+| Unit models / icons  | Playtest: `Sanctuary_Data/Gamedata/*.sanpack`          | Demo: `level0–10` scenes                |
 
 89 of 283 units differ on cost, health or build time — the Tempest is 3000 HP in
-one and 6000 in the other. The extractor reads **`engine`** for unit data and
-takes art from **`prototype`**, which is the only place art exists. Set
+one and 6000 in the other. The extractor reads **`engine`** for unit data. Set
 `SANCTUARY_TREE=prototype` to read the older data for comparison.
+
+Where the art lives moved between branches: the Demo bakes unit LODs into
+Unity's `level0–10` scene files, while the Playtest — which ships no
+`prototype` tree at all — packs them into `Sanctuary_Data/Gamedata/*.sanpack`.
+`scanUnitModels` reads both, in chunks, since one of those packs is 1.4 GB and
+does not fit in a single JS string. That scan decides `status`, so if a refresh
+ever reports every unit as `no-model`, look there first.
 
 Under whichever tree, the files used are:
 

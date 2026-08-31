@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
-import { setMetaLine } from '../lib/meta-line';
 import { copyText } from '../lib/clipboard';
+import { HeaderSearch } from '../components/HeaderSearch';
 import { fetchDownloadCounts, fileSizeLabel, loadMaps, sizeLabel, type MapEntry } from '../lib/maps';
 
 // Where the game reads maps from. The install root moves with the branch and
@@ -15,6 +15,9 @@ const MAPS_PATH =
 interface MapsSearch {
   m?: string;
   sort?: string;
+  q?: string;
+  players?: string;
+  size?: string;
 }
 
 const str = (v: unknown): string | undefined => {
@@ -27,6 +30,9 @@ export const Route = createFileRoute('/maps')({
   validateSearch: (raw: Record<string, unknown>): MapsSearch => ({
     m: str(raw.m),
     sort: str(raw.sort),
+    q: str(raw.q),
+    players: str(raw.players),
+    size: str(raw.size),
   }),
   head: () => ({
     meta: [
@@ -40,6 +46,25 @@ export const Route = createFileRoute('/maps')({
   loader: () => loadMaps(),
   component: MapsPage,
 });
+
+const toSet = (raw: string | undefined): Set<string> => new Set((raw ?? '').split(',').filter(Boolean));
+
+// Player counts cluster into the shapes people actually search for; 5 and 7
+// player maps are rare enough that a chip each would mostly sit empty.
+const playerBucket = (n: number): string => (n <= 2 ? '2' : n <= 4 ? '4' : n <= 6 ? '6' : '8');
+const PLAYER_CHIPS = [
+  { value: '2', label: '1v1' },
+  { value: '4', label: '3–4' },
+  { value: '6', label: '5–6' },
+  { value: '8', label: '7–8' },
+];
+
+const SIZE_LABELS: Record<string, string> = {
+  '256': 'Small (256)',
+  '512': 'Medium (512)',
+  '1024': 'Large (1024)',
+  '2048': 'Huge (2048)',
+};
 
 const SORTS: Record<string, (a: MapEntry, b: MapEntry) => number> = {
   newest: (a, b) => b.addedAt.localeCompare(a.addedAt),
@@ -57,24 +82,34 @@ function MapsPage() {
     navigate({ search: (prev: MapsSearch) => ({ ...prev, ...p }), replace: true });
 
   const sort = search.sort && SORTS[search.sort] ? search.sort : 'newest';
-  const maps = useMemo(() => [...data.maps].sort(SORTS[sort]), [data, sort]);
   const open = search.m ? data.maps.find((m) => m.slug === search.m) : undefined;
+
+  // Filters are comma-joined id lists in the URL, same encoding the units
+  // board uses for its chips.
+  const players = toSet(search.players);
+  const sizes = toSet(search.size);
+  const needle = (search.q ?? '').trim().toLowerCase();
+
+  const maps = useMemo(() => {
+    const match = (m: MapEntry) =>
+      (!players.size || players.has(playerBucket(m.players))) &&
+      (!sizes.size || sizes.has(String(m.width))) &&
+      (!needle || `${m.name} ${m.author} ${m.description}`.toLowerCase().includes(needle));
+    return data.maps.filter(match).sort(SORTS[sort]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, sort, search.players, search.size, search.q]);
+
+  const toggle = (key: 'players' | 'size', value: string) => {
+    const set = new Set(key === 'players' ? players : sizes);
+    set.has(value) ? set.delete(value) : set.add(value);
+    patch({ [key]: set.size ? [...set].join(',') : undefined });
+  };
 
   // Live download counts per release tag; purely decorative, so a failed or
   // rate-limited API call just leaves them off.
   const [counts, setCounts] = useState<Map<string, number>>(new Map());
   useEffect(() => {
     if (data.maps.length) fetchDownloadCounts(data.repo).then(setCounts);
-  }, [data]);
-
-  useEffect(() => {
-    const mb = data.maps.reduce((n, m) => n + m.sizeBytes, 0) / 1048576;
-    setMetaLine(
-      data.maps.length
-        ? `${data.maps.length} map${data.maps.length === 1 ? '' : 's'} · ${mb.toFixed(1)} MB of terrain · ` +
-            `updated ${new Date(data.updatedAt).toLocaleDateString()}`
-        : 'community maps',
-    );
   }, [data]);
 
   useEffect(() => {
@@ -85,45 +120,107 @@ function MapsPage() {
     return () => document.removeEventListener('keydown', onKey);
   });
 
+  if (open) {
+    return (
+      <>
+        <div className="toolbar">
+          <span className="toolbar-summary">
+            {open.name} · {open.players} players · {sizeLabel(open)}
+          </span>
+        </div>
+        <main className="maps">
+          <MapDetail map={open} downloads={counts.get(open.tag)} />
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
+      <HeaderSearch
+        value={search.q ?? ''}
+        onChange={(q) => patch({ q: q.trim() || undefined })}
+        placeholder="Search maps by name or author…"
+      />
+
       <div className="toolbar">
         <span className="toolbar-summary">
-          {open
-            ? `${open.name} · ${open.players} players · ${sizeLabel(open)}`
-            : `${maps.length} map${maps.length === 1 ? '' : 's'}`}
+          {maps.length === data.maps.length
+            ? `${maps.length} map${maps.length === 1 ? '' : 's'}`
+            : `${maps.length} of ${data.maps.length} maps`}
         </span>
-        {!open && maps.length > 1 && (
-          <label className="sortctl">
-            Order
-            <select
-              value={sort}
-              onChange={(e) => patch({ sort: e.target.value === 'newest' ? undefined : e.target.value })}
-            >
-              <option value="newest">Newest</option>
-              <option value="name">Name</option>
-              <option value="players">Players</option>
-              <option value="size">Size</option>
-            </select>
-          </label>
-        )}
+        <label className="sortctl">
+          Order
+          <select
+            value={sort}
+            onChange={(e) => patch({ sort: e.target.value === 'newest' ? undefined : e.target.value })}
+          >
+            <option value="newest">Newest</option>
+            <option value="name">Name</option>
+            <option value="players">Players</option>
+            <option value="size">Size</option>
+          </select>
+        </label>
       </div>
 
-      <main className="maps">
-        {open ? (
-          <MapDetail map={open} downloads={counts.get(open.tag)} />
-        ) : maps.length === 0 ? (
-          <p className="empty">No maps published yet — the first ones are on their way.</p>
-        ) : (
-          <>
-            <div className="map-grid">
-              {maps.map((m) => (
-                <MapCard map={m} key={m.slug} downloads={counts.get(m.tag)} />
+      <main className="layout">
+        <aside className="filters">
+          <div className="filter-head">
+            <h2>Filters</h2>
+            <button type="button" className="linkish" onClick={() => navigate({ search: {}, replace: true })}>
+              Reset
+            </button>
+          </div>
+          <div className="fgroup">
+            <h3>Players</h3>
+            <div className="chips">
+              {PLAYER_CHIPS.map((chip) => (
+                <button
+                  type="button"
+                  className="chip"
+                  key={chip.value}
+                  aria-pressed={players.has(chip.value)}
+                  onClick={() => toggle('players', chip.value)}
+                >
+                  {chip.label}
+                </button>
               ))}
             </div>
-            <InstallHelp />
-          </>
-        )}
+          </div>
+          <div className="fgroup">
+            <h3>Size</h3>
+            <div className="chips">
+              {Object.keys(SIZE_LABELS).map((value) => (
+                <button
+                  type="button"
+                  className="chip"
+                  key={value}
+                  aria-pressed={sizes.has(value)}
+                  onClick={() => toggle('size', value)}
+                >
+                  {SIZE_LABELS[value]}
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        <section className="results maps">
+          {data.maps.length === 0 ? (
+            <p className="empty">No maps published yet — the first ones are on their way.</p>
+          ) : maps.length === 0 ? (
+            <p className="empty">No maps match those filters.</p>
+          ) : (
+            <>
+              <div className="map-grid">
+                {maps.map((m) => (
+                  <MapCard map={m} key={m.slug} downloads={counts.get(m.tag)} />
+                ))}
+              </div>
+              <InstallHelp />
+            </>
+          )}
+        </section>
       </main>
     </>
   );
