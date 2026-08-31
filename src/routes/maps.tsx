@@ -206,19 +206,20 @@ function MapsPage() {
         </aside>
 
         <section className="results maps">
+          <div className="maps-intro">
+            <InstallHelp />
+            <PreviewNote />
+          </div>
           {data.maps.length === 0 ? (
             <p className="empty">No maps published yet — the first ones are on their way.</p>
           ) : maps.length === 0 ? (
             <p className="empty">No maps match those filters.</p>
           ) : (
-            <>
-              <div className="map-grid">
-                {maps.map((m) => (
-                  <MapCard map={m} key={m.slug} downloads={counts.get(m.tag)} />
-                ))}
-              </div>
-              <InstallHelp />
-            </>
+            <div className="map-grid">
+              {maps.map((m) => (
+                <MapCard map={m} key={m.slug} downloads={counts.get(m.tag)} />
+              ))}
+            </div>
           )}
         </section>
       </main>
@@ -226,14 +227,27 @@ function MapsPage() {
   );
 }
 
+// The previews are elevation renders, not screenshots — worth saying plainly,
+// because a snow map reading green is otherwise just confusing.
+function PreviewNote() {
+  return (
+    <p className="preview-note">
+      <strong>About the previews:</strong> they are generated from each map's terrain data, so they show
+      layout, water and elevation rather than the finished look in game — Winter Duel reads green here but
+      plays out as snow.
+    </p>
+  );
+}
+
 // Installing is a manual copy, so say where the folder is and let people take
-// the path with one click rather than transcribing it.
+// the path with one click rather than transcribing it. Collapsed by default:
+// it matters once, and the maps are what people came for.
 function InstallHelp() {
   const [copied, setCopied] = useState(false);
 
   return (
-    <div className="install">
-      <h2>Installing</h2>
+    <details className="install">
+      <summary>How to install a map</summary>
       <ol>
         <li>Download the zip and extract it — you get one folder named after the map.</li>
         <li>
@@ -261,7 +275,7 @@ function InstallHelp() {
         That's the default for the Steam Playtest build. If you installed elsewhere or play a different
         branch, use that install's own <code>engine\Sanctuary_Data\Maps</code>.
       </p>
-    </div>
+    </details>
   );
 }
 
@@ -297,7 +311,10 @@ function MapDetail({ map: m, downloads }: { map: MapEntry; downloads: number | u
         ← All maps
       </Link>
       <div className="map-detail-cols">
-        <img className="map-detail-preview" src={`/maps/${m.slug}/preview.png`} alt={`${m.name} preview`} />
+        <div>
+          <img className="map-detail-preview" src={`/maps/${m.slug}/preview.png`} alt={`${m.name} preview`} />
+          <p className="hint preview-caption">Terrain render — layout and elevation, not the in-game look.</p>
+        </div>
         <div className="map-detail-info">
           <h1>{m.name}</h1>
           {/* Verbatim credits from the .sanmap — sometimes a name, sometimes a

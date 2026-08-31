@@ -1383,21 +1383,80 @@ img.unit-icon[data-muted='true'] {
 .dl-btn:hover {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
-/* How-to-install block: under the download button on a map page, and as a
-   footer on the listing since cards download directly too. */
+.map-detail-info .install {
+  margin-top: 14px;
+}
+
+/* Two notes above the grid: how to install, and what the previews actually
+   are. Side by side when there's room, stacked when there isn't. */
+.maps-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.maps-intro .install {
+  flex: none;
+}
+.maps-intro .preview-note {
+  flex: 1;
+  min-width: 260px;
+}
+
+.preview-note {
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+.preview-note strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.preview-caption {
+  margin: 6px 0 0;
+  text-align: center;
+}
+
+/* How-to-install card: collapsed by default — it matters once. */
 .install {
-  margin-top: 22px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+  padding: 8px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 7px;
   max-width: 620px;
 }
-.install h2 {
-  margin: 0 0 8px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
+.install > summary {
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  list-style: none;
+}
+.install > summary::-webkit-details-marker {
+  display: none;
+}
+/* A caret that turns, so the card reads as openable at a glance. */
+.install > summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 7px;
   color: var(--text-dim);
-  font-weight: 650;
+  transition: transform 0.15s ease;
+}
+.install[open] > summary::before {
+  transform: rotate(90deg);
+}
+.install > summary:hover {
+  color: var(--accent);
+}
+.install[open] > summary {
+  margin-bottom: 10px;
 }
 .install ol {
   margin: 0 0 10px;
