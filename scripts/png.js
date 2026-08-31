@@ -1,12 +1,10 @@
-// A minimal 8-bit PNG reader/writer with an auto-levels pass, used by
-// add-map.js on map previews.
+// A minimal 8-bit PNG reader/writer, used by add-map.js on map previews.
 //
-// Converted maps carry previews that are real terrain but badly underexposed —
-// a 512px card of one reads as an empty dark rectangle. Rather than take an
-// image dependency (this repo has none), decode the one PNG flavour the game
-// and the converter actually write (8-bit RGB/RGBA, non-interlaced) and
-// stretch its levels. Previews that already use their range are passed through
-// untouched, so a good preview is never "corrected" into something garish.
+// The converter writes previews barely compressed — 769 KB of stored scanlines
+// for a 512px image. Decoding and re-encoding them with a proper filter and
+// deflate is pixel-for-pixel lossless and cuts them by about 80%, worth doing
+// to 51 files that live in the repo. Deliberately no tone adjustment: these
+// are true-colour terrain renders and the colours are the point.
 
 import zlib from 'node:zlib';
 
@@ -122,54 +120,4 @@ function chunk(type, body) {
   const crc = Buffer.alloc(4);
   crc.writeUInt32BE(crc32(Buffer.concat([head.subarray(4), body])));
   return Buffer.concat([head, body, crc]);
-}
-
-/**
- * Stretch the image so its colour range fills 0–255. Percentile ends rather
- * than absolute min/max, so a handful of stray dark or blown pixels can't
- * defeat the stretch. Returns null when the image already spans enough of the
- * range to leave alone.
- */
-export function autoLevels(img, { minSpan = 200, clip = 0.002 } = {}) {
-  const { pixels, channels } = img;
-  const colour = channels >= 3;
-  const histogram = new Uint32Array(256);
-  let count = 0;
-
-  for (let i = 0; i < pixels.length; i += channels) {
-    const luma = colour
-      ? Math.round(0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2])
-      : pixels[i];
-    histogram[luma]++;
-    count++;
-  }
-
-  const cut = Math.floor(count * clip);
-  let lo = 0;
-  let hi = 255;
-  for (let acc = 0, v = 0; v < 256; v++)
-    if ((acc += histogram[v]) > cut) {
-      lo = v;
-      break;
-    }
-  for (let acc = 0, v = 255; v >= 0; v--)
-    if ((acc += histogram[v]) > cut) {
-      hi = v;
-      break;
-    }
-
-  const span = hi - lo;
-  if (span <= 0 || span >= minSpan) return null;
-
-  const gain = 255 / span;
-  const map = new Uint8Array(256);
-  for (let v = 0; v < 256; v++) map[v] = Math.min(255, Math.max(0, Math.round((v - lo) * gain)));
-
-  // Alpha is a mask, not a tone — leave it alone.
-  const opaque = channels === 3 || channels === 1 ? channels : channels - 1;
-  for (let i = 0; i < pixels.length; i += channels) {
-    for (let c = 0; c < opaque; c++) pixels[i + c] = map[pixels[i + c]];
-  }
-
-  return { lo, hi };
 }

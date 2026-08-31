@@ -17,7 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { autoLevels, decodePng, encodePng } from './png-levels.js';
+import { decodePng, encodePng } from './png.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(here, '..', 'public');
@@ -187,18 +187,16 @@ console.log(`\nNow commit and push public/ so the site picks it up.`);
 
 /* ---------------- preview art ---------------- */
 
-// The site's copy of the preview, not the one inside the zip: converted maps
-// arrive underexposed (a whole card of one reads as an empty rectangle), and
-// the game writes these barely compressed. Levelling and re-deflating fixes
-// both. Anything unexpected about the PNG is not worth failing a publish over
-// — fall back to copying it as-is.
+// The site's copy of the preview, not the one inside the zip. Recompressing
+// is lossless and cuts these by about 80%; the pixels are left exactly as the
+// generator rendered them. Anything unexpected about the PNG is not worth
+// failing a publish over — fall back to copying it as-is.
 function writePreview(src, dest) {
   try {
-    const img = decodePng(fs.readFileSync(src));
-    const adjusted = autoLevels(img);
-    const out = encodePng(img);
+    const raw = fs.readFileSync(src);
+    const out = encodePng(decodePng(raw));
     fs.writeFileSync(dest, out);
-    if (adjusted) console.log(`preview:   levelled (${adjusted.lo}-${adjusted.hi} -> 0-255)`);
+    console.log(`preview:   ${(raw.length / 1024).toFixed(0)} KB -> ${(out.length / 1024).toFixed(0)} KB`);
     return;
   } catch (err) {
     console.log(`preview:   copied as-is (${err.message})`);

@@ -206,10 +206,7 @@ function MapsPage() {
         </aside>
 
         <section className="results maps">
-          <div className="maps-intro">
-            <InstallHelp />
-            <PreviewNote />
-          </div>
+          <InstallHelp />
           {data.maps.length === 0 ? (
             <p className="empty">No maps published yet — the first ones are on their way.</p>
           ) : maps.length === 0 ? (
@@ -224,18 +221,6 @@ function MapsPage() {
         </section>
       </main>
     </>
-  );
-}
-
-// The previews are elevation renders, not screenshots — worth saying plainly,
-// because a snow map reading green is otherwise just confusing.
-function PreviewNote() {
-  return (
-    <p className="preview-note">
-      <strong>About the previews:</strong> they are generated from each map's terrain data, so they show
-      layout, water and elevation rather than the finished look in game — Winter Duel reads green here but
-      plays out as snow.
-    </p>
   );
 }
 
@@ -311,10 +296,7 @@ function MapDetail({ map: m, downloads }: { map: MapEntry; downloads: number | u
         ← All maps
       </Link>
       <div className="map-detail-cols">
-        <div>
-          <img className="map-detail-preview" src={`/maps/${m.slug}/preview.png`} alt={`${m.name} preview`} />
-          <p className="hint preview-caption">Terrain render — layout and elevation, not the in-game look.</p>
-        </div>
+        <img className="map-detail-preview" src={`/maps/${m.slug}/preview.png`} alt={`${m.name} preview`} />
         <div className="map-detail-info">
           <h1>{m.name}</h1>
           {/* Verbatim credits from the .sanmap — sometimes a name, sometimes a
