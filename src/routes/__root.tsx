@@ -1,4 +1,6 @@
 import { Outlet, createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Header } from '../components/Header';
 import appCss from '../styles.css?url';
 
@@ -29,6 +31,8 @@ function RootComponent() {
       <body>
         <Header />
         <Outlet />
+        <Analytics />
+        <SpeedInsights />
         <Scripts />
       </body>
     </html>
