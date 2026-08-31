@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { setMetaLine } from '../lib/meta-line';
+import { copyText } from '../lib/clipboard';
 import { fetchDownloadCounts, fileSizeLabel, loadMaps, sizeLabel, type MapEntry } from '../lib/maps';
+
+// Where the game reads maps from. The install root moves with the branch and
+// the Steam library, so this is the common default rather than a promise.
+const MAPS_PATH =
+  'C:\\Program Files (x86)\\Steam\\steamapps\\common\\Sanctuary Shattered Sun Playtest\\engine\\Sanctuary_Data\\Maps';
 
 // The listing and each map's own view share this route: ?m=<slug> opens a map,
 // the same URL-param pattern the units page uses for its detail panel, so
@@ -109,14 +115,56 @@ function MapsPage() {
         ) : maps.length === 0 ? (
           <p className="empty">No maps published yet — the first ones are on their way.</p>
         ) : (
-          <div className="map-grid">
-            {maps.map((m) => (
-              <MapCard map={m} key={m.slug} downloads={counts.get(m.tag)} />
-            ))}
-          </div>
+          <>
+            <div className="map-grid">
+              {maps.map((m) => (
+                <MapCard map={m} key={m.slug} downloads={counts.get(m.tag)} />
+              ))}
+            </div>
+            <InstallHelp />
+          </>
         )}
       </main>
     </>
+  );
+}
+
+// Installing is a manual copy, so say where the folder is and let people take
+// the path with one click rather than transcribing it.
+function InstallHelp() {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <div className="install">
+      <h2>Installing</h2>
+      <ol>
+        <li>Download the zip and extract it — you get one folder named after the map.</li>
+        <li>
+          Put that folder in your Sanctuary <code>Maps</code> folder, so the map sits at{' '}
+          <code>…\Maps\Map_Name\</code>.
+        </li>
+        <li>Restart the game — the map appears in the skirmish and lobby map lists.</li>
+      </ol>
+      <div className="install-path">
+        <code>{MAPS_PATH}</code>
+        <button
+          type="button"
+          className="linkish"
+          onClick={async () => {
+            if (await copyText(MAPS_PATH)) {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            }
+          }}
+        >
+          {copied ? 'Copied ✓' : 'Copy'}
+        </button>
+      </div>
+      <p className="hint">
+        That's the default for the Steam Playtest build. If you installed elsewhere or play a different
+        branch, use that install's own <code>engine\Sanctuary_Data\Maps</code>.
+      </p>
+    </div>
   );
 }
 
@@ -129,7 +177,6 @@ function MapCard({ map: m, downloads }: { map: MapEntry; downloads: number | und
           <span className="map-card-name">{m.name}</span>
           <small>
             {m.players} players · {sizeLabel(m)}
-            {m.author ? ` · by ${m.author}` : ''}
           </small>
         </span>
       </Link>
@@ -156,7 +203,9 @@ function MapDetail({ map: m, downloads }: { map: MapEntry; downloads: number | u
         <img className="map-detail-preview" src={`/maps/${m.slug}/preview.png`} alt={`${m.name} preview`} />
         <div className="map-detail-info">
           <h1>{m.name}</h1>
-          {m.author && <p className="map-author">by {m.author}</p>}
+          {/* Verbatim credits from the .sanmap — sometimes a name, sometimes a
+          full provenance line, so no "by" prefix. */}
+          {m.author && <p className="map-author">{m.author}</p>}
           {m.description && <p className="map-desc">{m.description}</p>}
           <div className="rgrid">
             <div>
@@ -193,7 +242,7 @@ function MapDetail({ map: m, downloads }: { map: MapEntry; downloads: number | u
           <a className="dl-btn" href={m.download}>
             Download map · {fileSizeLabel(m.sizeBytes)}
           </a>
-          <p className="map-hint">Extract the zip into the game's Maps folder.</p>
+          <InstallHelp />
         </div>
       </div>
       {m.screenshots.length > 0 && (

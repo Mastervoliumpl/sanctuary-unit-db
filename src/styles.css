@@ -1389,10 +1389,67 @@ img.unit-icon[data-muted='true'] {
 .dl-btn:hover {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
-.map-hint {
+/* How-to-install block: under the download button on a map page, and as a
+   footer on the listing since cards download directly too. */
+.install {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  max-width: 620px;
+}
+.install h2 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-dim);
+  font-weight: 650;
+}
+.install ol {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.install li {
+  margin-bottom: 2px;
+}
+.install code {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11.5px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.install-path {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+/* The path is long; let it scroll rather than wrap or stretch the layout. */
+.install-path code {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--text);
+}
+.install-path button {
+  flex: none;
+}
+
+.install .hint {
   margin: 8px 0 0;
   font-size: 11.5px;
-  color: var(--text-dim);
 }
 
 .shots {

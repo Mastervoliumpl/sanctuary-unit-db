@@ -17,6 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { autoLevels, decodePng, encodePng } from './png-levels.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(here, '..', 'public');
@@ -135,7 +136,7 @@ const existing = db.maps.find((m) => m.slug === slug);
 
 const outDir = path.join(PUBLIC, 'maps', slug);
 fs.mkdirSync(outDir, { recursive: true });
-fs.copyFileSync(previewSrc, path.join(outDir, 'preview.png'));
+writePreview(previewSrc, path.join(outDir, 'preview.png'));
 
 let screenshots = existing?.screenshots ?? [];
 if (flags.shots.length) {
@@ -183,6 +184,27 @@ console.log(`players:   ${meta.players}   size: ${meta.width}x${meta.length}   w
 console.log(`zip:       ${(sizeBytes / 1048576).toFixed(1)} MB -> ${entry.download}`);
 if (screenshots.length) console.log(`shots:     ${screenshots.join(', ')}`);
 console.log(`\nNow commit and push public/ so the site picks it up.`);
+
+/* ---------------- preview art ---------------- */
+
+// The site's copy of the preview, not the one inside the zip: converted maps
+// arrive underexposed (a whole card of one reads as an empty rectangle), and
+// the game writes these barely compressed. Levelling and re-deflating fixes
+// both. Anything unexpected about the PNG is not worth failing a publish over
+// — fall back to copying it as-is.
+function writePreview(src, dest) {
+  try {
+    const img = decodePng(fs.readFileSync(src));
+    const adjusted = autoLevels(img);
+    const out = encodePng(img);
+    fs.writeFileSync(dest, out);
+    if (adjusted) console.log(`preview:   levelled (${adjusted.lo}-${adjusted.hi} -> 0-255)`);
+    return;
+  } catch (err) {
+    console.log(`preview:   copied as-is (${err.message})`);
+  }
+  fs.copyFileSync(src, dest);
+}
 
 /* ---------------- github plumbing ---------------- */
 

@@ -37,12 +37,21 @@ test('unit board renders, filters via URL, and opens the detail panel', async ({
   expect(errors).toEqual([]);
 });
 
-test('maps page is prerendered and shows its empty state until maps are published', async ({ page }) => {
+test('maps listing renders cards and opens a map page by slug', async ({ page }) => {
   const errors = collectErrors(page);
 
   await page.goto('/maps');
-  await expect(page.locator('.empty')).toContainText('No maps published yet');
-  await expect(page.locator('.toolbar')).toContainText('0 maps');
+  // The listing loads its manifest client-side, so wait for the first card
+  // before counting — count() does not retry.
+  await expect(page.locator('.map-card').first()).toBeVisible();
+  expect(await page.locator('.map-card').count()).toBeGreaterThan(10);
+  await expect(page.locator('.install-path code')).toContainText('Sanctuary_Data\\Maps');
+
+  // Each map has a shareable ?m=<slug> address with its own stats and zip.
+  await page.goto('/maps?m=seton-s-clutch');
+  await expect(page.locator('.map-detail h1')).toHaveText("Seton's Clutch");
+  await expect(page.locator('.map-detail')).toContainText('8');
+  await expect(page.locator('.dl-btn')).toHaveAttribute('href', /releases\/download\/map-seton-s-clutch\//);
 
   expect(errors).toEqual([]);
 });

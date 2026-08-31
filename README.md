@@ -55,6 +55,13 @@ from the `.sanmap` inside, uploads the zip to the release, and updates
 version and replaces the asset. It authenticates with `GITHUB_TOKEN` or the
 same stored credential `git push` uses.
 
+The site's copy of each preview goes through `scripts/png-levels.js`, a small
+built-in PNG decoder/encoder: converted maps arrive underexposed (a card of
+one reads as an empty rectangle), so previews whose tonal range is compressed
+are stretched to fill it, and everything is re-deflated — the pack of 51 went
+from 38 MB to 13 MB. Previews that already use their range are left alone, and
+the copy inside the zip is never touched.
+
 ## Pages
 
 Routes are files in `src/routes/` (TanStack Router file-based routing); both
