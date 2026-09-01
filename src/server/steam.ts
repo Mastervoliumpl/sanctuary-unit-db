@@ -45,6 +45,36 @@ export async function verifySteamCallback(callbackUrl: URL): Promise<string | nu
   return match ? match[1] : null;
 }
 
+// App ids this ladder accepts web-API tickets from: the Playtest today, the
+// full game so nothing breaks at launch. Constants mirrored from the game's
+// EM.Network.SteamManager/SteamAppIDs.
+const APP_IDS = [4511930, 1699050];
+
+// Verifies a GetAuthTicketForWebApi ticket with Steam itself and returns the
+// SteamID it belongs to, or null. The identity string must match what the
+// mod passed when minting (LadderReporter's TicketIdentity).
+export async function verifyWebApiTicket(ticketHex: string, identity: string): Promise<string | null> {
+  const key = process.env.STEAM_API_KEY;
+  if (!key || !/^[0-9a-fA-F]{40,5200}$/.test(ticketHex)) return null;
+  for (const appId of APP_IDS) {
+    try {
+      const res = await fetch(
+        'https://api.steampowered.com/ISteamUserAuth/AuthenticateUserTicket/v1/' +
+          `?key=${key}&appid=${appId}&ticket=${ticketHex}&identity=${encodeURIComponent(identity)}`,
+      );
+      if (!res.ok) continue;
+      const body: { response?: { params?: { result?: string; steamid?: string } } } = await res.json();
+      const params = body.response?.params;
+      if (params?.result === 'OK' && params.steamid && /^\d{17}$/.test(params.steamid)) {
+        return params.steamid;
+      }
+    } catch {
+      // Steam hiccup on this appid — try the next, or fail closed.
+    }
+  }
+  return null;
+}
+
 export interface SteamPersona {
   personaName: string;
   avatarUrl: string | null;
