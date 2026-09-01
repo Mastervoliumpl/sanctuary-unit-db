@@ -14,6 +14,7 @@
     "icons": "node scripts/build-icons.js",
     "refresh": "npm run extract && npm run icons && npm run diff",
     "verify": "node scripts/verify.js",
+    "db:migrate": "node scripts/db-migrate.js",
     "test": "vitest run",
     "diff": "node scripts/diff-data.js",
     "test:e2e": "playwright test",
@@ -29,6 +30,8 @@
     "@tanstack/react-start": "^1.168.48",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "jose": "^6.2.10",
+    "postgres": "^3.4.9",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

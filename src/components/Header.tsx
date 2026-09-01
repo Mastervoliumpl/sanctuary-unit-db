@@ -3,6 +3,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Link } from '@tanstack/react-router';
+import { AuthChip } from './AuthChip';
 
 export function Header() {
   const ref = useRef<HTMLElement>(null);
@@ -63,8 +64,17 @@ export function Header() {
         >
           Maps
         </Link>
+        <Link
+          to="/ladder"
+          className="navlink"
+          activeOptions={{ includeSearch: false }}
+          activeProps={{ className: 'navlink active' }}
+        >
+          Ladder
+        </Link>
       </nav>
       <div className="header-slot" />
+      <AuthChip />
     </header>
   );
 }

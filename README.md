@@ -567,8 +567,16 @@ hundred MB of hosting. One model is an afternoon; 283 is a separate project.
 can't, because there's no game install on a build server. The split is:
 
 - `npm run build` (Vite) only needs the **committed** `public/data` + art, so
-  it runs anywhere, including on Vercel. `vercel.json` points at it and serves
-  `dist/client/` — static files only, no server runtime.
+  it runs anywhere, including on Vercel. The content pages are prerendered
+  and served as static files, exactly as before.
+- Since the ladder was added, the build's server bundle (`dist/server/`) is
+  deployed too: `vercel.json` uses the `tanstack-start` preset, which wraps it
+  in a serverless function for the server functions and `/api/auth/*` routes.
+  The ladder needs env vars (see `.env.example`): `DATABASE_URL`,
+  `STEAM_API_KEY`, `SESSION_SECRET`, `SITE_URL`.
+  Steam sign-in only works on the origin `SITE_URL` names — not on preview
+  deployment URLs. The database schema lives in `supabase/migrations/`, applied
+  with `supabase db push` (or pasted into the SQL editor).
 - `npm run extract` / `icons` / `refresh` need the game install and only ever
   run on your machine. Their output is committed.
 
@@ -596,12 +604,18 @@ scripts/            local-only data pipeline, plain Node
   extract.js        templates -> public/data/units.json
   build-icons.js    icons-src/ -> per-faction PNGs (zero-dep PNG codec)
   verify.js         checks public/ data + art consistency (no game needed)
+supabase/
+  migrations/       ladder database schema + SQL functions (pairing, Elo)
 src/                the site, TanStack Start + React + TypeScript
   router.tsx        router factory + legacy-compatible search param encoding
   routes/
     __root.tsx      document shell, head, shared header
     index.tsx       unit board route: filters, sort, detail — all URL state
     calculator.tsx  calculator route: build/economy setup — all URL state
+    ladder*.tsx     ladder: leaderboard/queue, match room, player profiles
+    api.auth.*.ts   server-only routes for Steam OpenID sign-in/out
+  server/           server-function layer (service-role Supabase, sessions,
+                    Steam OpenID, queue + match logic) — never in the client
   lib/
     types.ts        the Unit type — the one contract for units.json
     data.ts         cached fetch of units.json + both manifests
@@ -610,6 +624,9 @@ src/                the site, TanStack Start + React + TypeScript
     economy.ts      standing economy roles, upgrade price/time/payback
     maps.ts         maps.json fetch, download counts, size labels
     clipboard.ts    copy-to-clipboard with a fallback
+    elo.ts          ladder rating maths (mirrored in supabase/migrations)
+    matchmaking.ts  queue radius/pairing rules (mirrored likewise)
+    ladder-maps.ts  the ranked map pool (official 1v1 maps)
     *.test.ts       vitest suites, run against the committed units.json
   components/       Header, HeaderSearch, UnitIcon (art + SVG fallback),
                     UnitCard, DetailPanel

@@ -1,6 +1,8 @@
 node_modules/
 .vercel/
 .DS_Store
+.env
+.env.local
 
 # Build output and framework-generated files
 dist/

@@ -9,7 +9,11 @@ function collectErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(`console: ${m.text()}`);
+    // The Vercel Analytics/Speed Insights scripts only exist on Vercel, so
+    // their 404s under the static test server are expected noise.
+    if (m.type() === 'error' && !m.location().url.includes('/_vercel/')) {
+      errors.push(`console: ${m.text()}`);
+    }
   });
   return errors;
 }
@@ -54,6 +58,17 @@ test('maps listing renders cards and opens a map page by slug', async ({ page })
   await expect(page.locator('.dl-btn')).toHaveAttribute('href', /releases\/download\/map-seton-s-clutch\//);
 
   expect(errors).toEqual([]);
+});
+
+test('ladder page renders its shell with no backend', async ({ page }) => {
+  // e2e serves the static build — no server functions exist here, so this
+  // pins the degradation contract: the ladder must render signed-out/empty
+  // instead of crashing. (No console-error assertion: the leaderboard fetch
+  // 404s by design in this environment, and the browser logs that itself.)
+  await page.goto('/ladder');
+  await expect(page.locator('.queue-widget')).toContainText('Sign in through Steam');
+  await expect(page.locator('.map-pool li').first()).toBeVisible();
+  await expect(page.locator('.results .empty')).toContainText("isn't reachable");
 });
 
 test('calculator restores a shared setup and computes the documented example', async ({ page }) => {

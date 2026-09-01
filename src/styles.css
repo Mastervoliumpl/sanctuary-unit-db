@@ -1541,3 +1541,351 @@ img.unit-icon[data-muted='true'] {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- ladder ---------- */
+
+/* Header account corner. */
+.steam-signin {
+  flex: none;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  background: var(--bg);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.steam-signin:hover {
+  border-color: var(--accent);
+}
+.steam-signin.big {
+  display: inline-block;
+  padding: 8px 14px;
+  font-size: 13px;
+  border-color: var(--accent);
+}
+.auth-chip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.auth-me {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.auth-me:hover {
+  color: var(--accent);
+}
+.auth-me img {
+  border-radius: 4px;
+  display: block;
+}
+
+/* Ladder page: queue rail + standings. The default sidebar is too narrow for
+   the queue card, so this layout widens it. */
+.layout.ladder {
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+.ladder-side {
+  position: sticky;
+  top: calc(var(--header-h) + 36px);
+  padding: 12px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.queue-widget {
+  padding: 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.queue-widget h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.queue-pulse {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+.queue-error {
+  color: #e5747f;
+  font-size: 12px;
+}
+
+.btn {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.btn.primary {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg));
+  border-color: var(--accent);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.map-pool h3 {
+  margin: 0 0 6px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.map-pool ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+.map-pool li {
+  padding: 2px 0;
+}
+
+.lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.lb-table th {
+  text-align: left;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  font-weight: 600;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.lb-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.lb-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+.lb-player:hover {
+  color: var(--accent);
+}
+.lb-player img {
+  border-radius: 4px;
+}
+.lb-rating {
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.outcome {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.outcome.win {
+  background: color-mix(in srgb, #57c78a 20%, transparent);
+  color: #7ad9a4;
+}
+.outcome.loss {
+  background: color-mix(in srgb, #e5747f 16%, transparent);
+  color: #e58f98;
+}
+.delta-up {
+  color: #7ad9a4;
+}
+.delta-down {
+  color: #e58f98;
+}
+
+/* Match room. */
+.match-room {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 22px 16px 60px;
+}
+.match-room .back {
+  display: inline-block;
+  margin-bottom: 16px;
+}
+.match-map h1 {
+  margin: 2px 0 18px;
+  font-size: 26px;
+}
+.match-vs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.match-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.match-player[data-me] {
+  border-color: var(--accent);
+}
+.match-player img {
+  border-radius: 5px;
+}
+.match-player a {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+}
+.match-player a:hover {
+  color: var(--accent);
+}
+.match-player .outcome {
+  margin-left: auto;
+}
+.match-instructions {
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-raised);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin-bottom: 16px;
+}
+.match-instructions p {
+  margin: 0;
+}
+.match-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.match-actions.column {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.match-actions .rk {
+  width: 100%;
+}
+.match-note {
+  color: var(--text-dim);
+}
+
+/* Profile. */
+.profile {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 22px 16px 60px;
+}
+.profile .back {
+  display: inline-block;
+  margin-bottom: 16px;
+}
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.profile-head img {
+  border-radius: 7px;
+}
+.profile-head h1 {
+  margin: 0;
+  font-size: 22px;
+}
+.profile-head p {
+  margin: 2px 0 0;
+}
+
+.name-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.name-edit input {
+  height: 30px;
+  padding: 0 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  font-size: 12.5px;
+}
+.name-edit input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.name-edit .hint {
+  width: 100%;
+  margin: 0;
+}
+
+.rating-graph {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  margin-bottom: 18px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.rg-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+}
+.rg-base {
+  stroke: var(--border);
+  stroke-dasharray: 3 4;
+}
+.rg-dot {
+  fill: var(--accent);
+}
+.rg-label {
+  fill: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .layout.ladder {
+    grid-template-columns: 1fr;
+  }
+  .ladder-side {
+    position: static;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .match-vs {
+    grid-template-columns: 1fr;
+  }
+}
