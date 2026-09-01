@@ -109,13 +109,18 @@ function MatchRoom() {
                 {p.personaName}
               </Link>
               <div className="dim">
-                {p.ratingBefore}
-                {p.ratingDelta != null && (
-                  <strong className={p.ratingDelta >= 0 ? 'delta-up' : 'delta-down'}>
-                    {' '}
-                    {p.ratingDelta >= 0 ? '+' : ''}
-                    {p.ratingDelta}
-                  </strong>
+                {/* Settled: the change, then the rating they now hold. Open:
+                    the rating they brought in. */}
+                {p.ratingDelta != null && p.ratingAfter != null ? (
+                  <>
+                    <strong className={p.ratingDelta >= 0 ? 'delta-up' : 'delta-down'}>
+                      {p.ratingDelta >= 0 ? '+' : ''}
+                      {p.ratingDelta}
+                    </strong>{' '}
+                    <strong className="lb-rating">{p.ratingAfter}</strong>
+                  </>
+                ) : (
+                  p.ratingBefore
                 )}
               </div>
             </div>
