@@ -2,14 +2,11 @@
 // and degrades to its empty state wherever the backend is unreachable — the
 // static e2e build serves this page with no server at all.
 
-import { useEffect, useState } from 'react';
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Link, createFileRoute } from '@tanstack/react-router';
 import { QueueWidget } from '../components/QueueWidget';
-import { loadMe } from '../lib/auth';
 import { LADDER_MAPS_1V1 } from '../lib/ladder-maps';
 import { leaderboard } from '../server/queue-fns';
-import { testLoseGame } from '../server/test-fns';
-import type { LeaderboardRow, Me } from '../lib/ladder-types';
+import type { LeaderboardRow } from '../lib/ladder-types';
 
 export const Route = createFileRoute('/ladder')({
   ssr: false,
@@ -26,43 +23,6 @@ export const Route = createFileRoute('/ladder')({
   component: LadderPage,
 });
 
-// TEMPORARY pre-launch test control — delete with src/server/test-fns.ts
-// before the ladder goes live (the DB reset then wipes its fake results).
-function TestControls() {
-  const [me, setMe] = useState<Me | null>(null);
-  const [busy, setBusy] = useState(false);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    let alive = true;
-    loadMe().then((m) => alive && setMe(m));
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  if (!me) return null;
-
-  return (
-    <button
-      type="button"
-      className="btn"
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          const { matchId } = await testLoseGame();
-          navigate({ to: '/ladder/match/$matchId', params: { matchId } });
-        } catch {
-          setBusy(false);
-        }
-      }}
-    >
-      TEST: log a loss vs a dummy
-    </button>
-  );
-}
-
 function LadderPage() {
   const rows = Route.useLoaderData();
 
@@ -76,7 +36,6 @@ function LadderPage() {
       <main className="layout ladder">
         <aside className="ladder-side">
           <QueueWidget />
-          <TestControls />
           <div className="map-pool">
             <h3>Map pool</h3>
             <ul>
