@@ -4,6 +4,14 @@ export function fmt(n: number | null | undefined, digits = 2): string {
   return n == null || Number.isNaN(n) ? '—' : n.toLocaleString('en-GB', { maximumFractionDigits: digits });
 }
 
+// The templates spell the resource `alloys`, but it reads as a mass noun in
+// play — "600 alloy", the way you'd say "600 mass" — so every label says
+// "alloy". Several places print an economy table's own keys, which is why this
+// is a lookup rather than a handful of literals: the field name stays exactly
+// as units.json has it and only the label changes.
+const RESOURCE_LABELS: Record<string, string> = { alloys: 'alloy' };
+export const resourceName = (key: string): string => RESOURCE_LABELS[key] ?? key;
+
 /** Seconds as a compact human duration — build times run from 1s to hours. */
 export function duration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '—';

@@ -150,7 +150,7 @@ function BoardPage() {
             }
           >
             <option value="default">Tech tree</option>
-            <option value="alloys">Alloys</option>
+            <option value="alloys">Alloy</option>
             <option value="energy">Energy</option>
             <option value="buildTime">Build time</option>
             <option value="health">Health</option>

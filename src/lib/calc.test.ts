@@ -11,8 +11,8 @@ const byId = new Map(data.units.map((u) => [u.id, u]));
 
 describe('build maths', () => {
   // The README's worked example: a T3 Land Factory (4,200 build time, 2,000
-  // alloys, 20,000 energy) with three T2 engineers (10 build power each)
-  // takes 140s and draws 14.29 alloys/s and 142.86 energy/s.
+  // alloy, 20,000 energy) with three T2 engineers (10 build power each)
+  // takes 140s and draws 14.29 alloy/s and 142.86 energy/s.
   it('matches the documented three-engineer example', () => {
     const target = byId.get('ues3511')!; // EDA T3 Land Factory
     const eng = byId.get('uel2501')!; // EDA T2 Engineer, 10 build power

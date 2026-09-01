@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { loadData } from '../lib/data';
-import { duration, fmt, shortName } from '../lib/format';
+import { duration, fmt, resourceName, shortName } from '../lib/format';
 import {
   buildResult,
   buildable,
@@ -74,11 +74,11 @@ const subLine = (u: Unit): string =>
 const rateBits = (o: ResourceRates | null, sign: string): string | null => {
   const bits = Object.entries(o ?? {})
     .filter(([, v]) => v)
-    .map(([k, v]) => `${sign}${fmt(v)} ${k}/s`);
+    .map(([k, v]) => `${sign}${fmt(v)} ${resourceName(k)}/s`);
   return bits.length ? bits.join(' ') : null;
 };
 
-// "+18 energy/s · −2 alloys/s · 500 energy store" — what a structure does.
+// "+18 energy/s · −2 alloy/s · 500 energy store" — what a structure does.
 const econDetail = (u: Unit): string =>
   [
     rateBits(u.production, '+'),
@@ -86,7 +86,7 @@ const econDetail = (u: Unit): string =>
     u.storage
       ? Object.entries(u.storage)
           .filter(([, v]) => v)
-          .map(([k, v]) => `${fmt(v, 0)} ${k} store`)
+          .map(([k, v]) => `${fmt(v, 0)} ${resourceName(k)} store`)
           .join(' ')
       : null,
   ]
@@ -395,7 +395,7 @@ function CalculatorPage() {
               units={consumerPool}
               subFor={econSub}
               placeholder="Search energy users…"
-              explainer="Structures that consume alloys or energy — usually not needed, add only if they're part of your base."
+              explainer="Structures that consume alloy or energy — usually not needed, add only if they're part of your base."
               listMax={220}
               iconManifest={iconManifest}
               onPick={(u) => addRow('e', economy, u.id)}
@@ -427,7 +427,7 @@ function CalculatorPage() {
                     </div>
                   </div>
                   <div>
-                    <div className="rk">Alloys/s</div>
+                    <div className="rk">Alloy/s</div>
                     <div className="rv alloy-val">{fmt(build.alloysPerSec)}</div>
                   </div>
                   <div>
@@ -435,7 +435,7 @@ function CalculatorPage() {
                     <div className="rv energy-val">{fmt(build.energyPerSec)}</div>
                   </div>
                   <div>
-                    <div className="rk">Total alloys</div>
+                    <div className="rk">Total alloy</div>
                     <div className="rv alloy-val">{fmt(build.target.cost.alloys, 0)}</div>
                   </div>
                   <div>
@@ -451,7 +451,7 @@ function CalculatorPage() {
                 <h2>Economy readout</h2>
                 <div className="rgrid tight">
                   <div>
-                    <div className="rk">Net alloys/s</div>
+                    <div className="rk">Net alloy/s</div>
                     <Net v={econ.alloysNet} />
                   </div>
                   <div>
@@ -461,10 +461,10 @@ function CalculatorPage() {
                 </div>
                 <div className="rlines">
                   <div>
-                    Gross {fmt(econ.alloysIn)} alloys/s · {fmt(econ.energyIn)} energy/s
+                    Gross {fmt(econ.alloysIn)} alloy/s · {fmt(econ.energyIn)} energy/s
                   </div>
                   <div>
-                    Upkeep {fmt(econ.alloysOut)} alloys/s · {fmt(econ.energyOut)} energy/s
+                    Upkeep {fmt(econ.alloysOut)} alloy/s · {fmt(econ.energyOut)} energy/s
                   </div>
                 </div>
               </>
@@ -669,7 +669,7 @@ function Verdict({
 
   const bars = (
     [
-      ['Alloys', build.alloysPerSec, econ.alloysNet],
+      ['Alloy', build.alloysPerSec, econ.alloysNet],
       ['Energy', build.energyPerSec, econ.energyNet],
     ] as const
   ).map(([resource, need, have]) => {

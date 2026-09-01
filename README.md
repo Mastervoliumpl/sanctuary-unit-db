@@ -99,7 +99,7 @@ drain per sec  = cost / seconds
 ```
 
 So three T2 engineers (10 build power each) on a T3 Land Factory — 4,200 build
-time, 2,000 alloys, 20,000 energy — take 140s and draw 14.29 alloys/s and 142.86
+time, 2,000 alloy, 20,000 energy — take 140s and draw 14.29 alloy/s and 142.86
 energy/s.
 
 **Who can build what is not a free choice.** Every unit carries a `builtBy` list,
@@ -153,6 +153,61 @@ Several buffs defined in that file are wired to no unit at all (the alloy
 fabricators, T2/T3 storages), so they're dropped rather than advertised as live.
 The effect is shown on the granting structure, since that's the side the
 templates describe.
+
+## Standing economy
+
+A unit's build cost is a one-off; 51 units also have a rate that runs forever
+after, and that's usually the number that decides whether you can afford them.
+A T3 Shield is 600 alloy once and **250 energy every second** thereafter.
+
+There are **three** roles here, not two, and the game picks between them purely
+on which economy blocks a template has
+(`host/units/unitsClasses/unitsBaseClass.lua:630`):
+
+| ResourceEntity | Template has                  | Count | Reads as        |
+| -------------- | ----------------------------- | ----- | --------------- |
+| `generation`   | `production` only             | 22    | free income     |
+| `production`   | both                          | 3     | a **converter** |
+| `consumption`  | `maintenanceConsumption` only | 26    | pure upkeep     |
+
+The middle case is the one worth separating out. A converter's output is scaled
+by how well its input is met — `ResourceEntity.productionMultiplier` is
+documented as "Lowest satisfaction of all consumed resources" — so the Alloy
+Furnace's 10 alloy/s is what its 1,000 energy/s _buys_, not a bonus on top of
+it. Listing those as a "Produces" line and an "Upkeep" line reads as a generator
+that happens to cost something, which is exactly backwards, so the furnaces get
+a conversion line instead.
+
+`narutalProducer` (sic) on a template would force the free-income case even with
+a consumption block. No template in the current data sets it, so the rule above
+is exactly the game's.
+
+Note that extractors and generators are _not_ on this list as consumers — they
+draw nothing. Only radar, sonar, shields, stealth fields and the furnaces do.
+
+## Upgrades cost the target's full price
+
+An in-place upgrade is not a discounted transform, and nothing is refunded for
+the structure it replaces. `UpgradeBehaviorThread`
+(`host/units/unitsClasses/unitsDefault.lua:177`) calls `CreateUnit` for the
+target at the structure's own position and then builds it like any other unit,
+and that unit's construction entity is charged its own template cost and build
+time (`unitsBaseClass.lua:155`). So the upgrade price is simply the target's
+cost — a T1 Alloy Extractor reaching T2 pays the T2's full 600 alloy and 6,000
+energy.
+
+What differs from an ordinary build is who supplies the build power: **the
+structure raises its own replacement**, so the wall-clock time is
+`target.buildTime / source.buildPower` — 600 / 5 = 120s for that extractor,
+drawing 5 alloy/s and 50 energy/s. Engineers can assist, since the half-built
+upgrade is an ordinary buildable.
+
+That is also the whole reason a radar or an extractor carries build power at
+all. All **33** units with build power and an empty `builds` list have an
+`upgradesTo` (`economy.test.ts` pins this), so the number is an upgrade rate,
+not a builder stat — showing it in the economy list implied a capability those
+structures don't have, so it moved into the upgrade block where it explains the
+time. Real builders keep it.
 
 ## Where the data comes from
 
@@ -404,6 +459,10 @@ Build time is stored in build-power-seconds, so wall-clock time depends on the
 builder: `buildTime / builder.buildPower`. The detail panel shows this per builder
 rather than a single misleading number.
 
+`upgradesTo` is folded in here but priced separately — see
+[Upgrades cost the target's full price](#upgrades-cost-the-targets-full-price),
+since an upgrade is paid for by the structure itself rather than by a builder.
+
 ## Icons
 
 The site uses the game's own strategic icons, with a generated SVG fallback for
@@ -548,6 +607,7 @@ src/                the site, TanStack Start + React + TypeScript
     data.ts         cached fetch of units.json + both manifests
     board.ts        grouping, filtering, sorting (pure functions)
     calc.ts         build/economy maths, option pools, URL row packing
+    economy.ts      standing economy roles, upgrade price/time/payback
     maps.ts         maps.json fetch, download counts, size labels
     clipboard.ts    copy-to-clipboard with a fallback
     *.test.ts       vitest suites, run against the committed units.json

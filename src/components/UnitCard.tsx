@@ -1,5 +1,6 @@
 import type { Unit, Weapon } from '../lib/types';
 import { fmt, shortName } from '../lib/format';
+import { economyRole, netRate } from '../lib/economy';
 import { FACTION_COLOURS, UnitIcon } from './UnitIcon';
 
 interface UnitCardProps {
@@ -50,9 +51,36 @@ export function UnitCard({ unit: u, iconManifest, onOpen }: UnitCardProps) {
             </span>
           ) : null}
         </span>
+        <RateLine unit={u} />
         <WeaponLines unit={u} />
       </span>
     </button>
+  );
+}
+
+// The standing cost or income, which the build cost above says nothing about —
+// a T3 Shield is 600 alloy once and 250 energy every second after that. Shown
+// as the net, so a converter reads as the trade it actually is.
+function RateLine({ unit: u }: { unit: Unit }) {
+  if (!economyRole(u)) return null;
+  const net = netRate(u);
+  const parts: Array<[number, string, string]> = [
+    [net.alloys, 'a/s', 'alloy-val'],
+    [net.energy, 'e/s', 'energy-val'],
+  ];
+
+  return (
+    <span className="rate-row">
+      {parts
+        .filter(([v]) => v !== 0)
+        .map(([v, unit, cls]) => (
+          <span className={v > 0 ? cls : 'bad'} key={unit}>
+            {v > 0 ? '+' : '−'}
+            {fmt(Math.abs(v))}
+            <i>{unit}</i>
+          </span>
+        ))}
+    </span>
   );
 }
 

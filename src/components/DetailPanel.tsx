@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import type { Unit, Weapon } from '../lib/types';
 import type { LoadedData } from '../lib/data';
 import { STATUS_LABELS } from '../lib/board';
-import { builderName, fmt, shortName, splitCamel } from '../lib/format';
+import { builderName, duration, fmt, resourceName, shortName, splitCamel } from '../lib/format';
+import { consumes, economyRole, produces, upgradeChain, type UpgradeStep } from '../lib/economy';
 import { FACTION_COLOURS, UnitIcon } from './UnitIcon';
 import { beamLabel } from './UnitCard';
 
@@ -72,7 +73,7 @@ export function DetailPanel({ unit: u, loaded, onOpen, onClose }: DetailPanelPro
 
         <Section title="Cost & core">
           <dl className="statgrid">
-            <Stat label="Alloys" value={<span className="alloy-val">{fmt(u.cost.alloys)}</span>} />
+            <Stat label="Alloy" value={<span className="alloy-val">{fmt(u.cost.alloys)}</span>} />
             <Stat label="Energy" value={<span className="energy-val">{fmt(u.cost.energy)}</span>} />
             <Stat label="Build time" value={fmt(u.buildTime)} />
             <Stat label="Health" value={fmt(u.health)} />
@@ -88,6 +89,7 @@ export function DetailPanel({ unit: u, loaded, onOpen, onClose }: DetailPanelPro
         <ShieldSection unit={u} />
         <MobilitySection unit={u} />
         <BuildSection unit={u} byId={byId} iconManifest={iconManifest} onOpen={onOpen} />
+        <UpgradeSection unit={u} byId={byId} iconManifest={iconManifest} onOpen={onOpen} />
 
         <Section title="Tags">
           <div className="unit-links">
@@ -118,23 +120,50 @@ const Stat = ({ label, value }: { label: string; value: ReactNode }) => (
   </div>
 );
 
-const rates = (obj: Record<string, number | undefined>) =>
+// Storage is a capacity, not a rate — no "/s".
+const amounts = (obj: Record<string, number | undefined>) =>
   Object.entries(obj)
-    .map(([k, v]) => `${v}/s ${k}`)
+    .map(([k, v]) => `${fmt(v)} ${resourceName(k)}`)
     .join(', ');
 
+// Coloured per resource, since an ongoing rate is read at a glance far more
+// often than it is read carefully.
+const rateLine = (r: { alloys: number; energy: number }) => (
+  <>
+    {r.alloys ? <span className="alloy-val">{fmt(r.alloys)}/s alloy</span> : null}
+    {r.alloys && r.energy ? ' · ' : null}
+    {r.energy ? <span className="energy-val">{fmt(r.energy)}/s energy</span> : null}
+  </>
+);
+
+// A converter is not a producer with upkeep — the game only scales production
+// against consumption when both blocks exist, so the output is what the input
+// buys. Showing them as two independent lines inverts that, which is why the
+// Alloy Furnace gets a conversion line instead of a Produces/Upkeep pair.
 function EconomySection({ unit: u }: { unit: Unit }) {
-  const lines: Array<[string, string | number]> = [];
-  if (u.production) lines.push(['Produces', rates(u.production as Record<string, number>)]);
-  if (u.upkeep) lines.push(['Upkeep', rates(u.upkeep as Record<string, number>)]);
-  if (u.storage)
+  const role = economyRole(u);
+  const lines: Array<[string, ReactNode]> = [];
+
+  if (role === 'converter') {
     lines.push([
-      'Storage',
-      Object.entries(u.storage)
-        .map(([k, v]) => `${fmt(v)} ${k}`)
-        .join(', '),
+      'Converts',
+      <>
+        {rateLine(consumes(u))} → {rateLine(produces(u))}
+      </>,
     ]);
-  if (u.buildPower) lines.push(['Build power', u.buildPower]);
+  } else if (role === 'generator') {
+    lines.push(['Produces', rateLine(produces(u))]);
+  } else if (role === 'consumer') {
+    lines.push(['Upkeep', rateLine(consumes(u))]);
+  }
+
+  if (u.storage) lines.push(['Storage', amounts(u.storage as Record<string, number>)]);
+
+  // Build power is only a builder stat when there is something to build. On the
+  // 33 structures whose build power exists purely to raise their own upgrade it
+  // reads as a capability they don't have, so it moves to the upgrade block.
+  if (u.buildPower && u.builds.length > 0) lines.push(['Build power', u.buildPower]);
+
   if (!lines.length) return null;
 
   return (
@@ -144,6 +173,12 @@ function EconomySection({ unit: u }: { unit: Unit }) {
           <KV key={k} k={k} v={v} />
         ))}
       </dl>
+      {role === 'converter' && (
+        <p className="hint" style={{ margin: '8px 0 0' }}>
+          A converter's output scales with how well its input is met — starve the energy and the alloy falls
+          with it.
+        </p>
+      )}
     </Section>
   );
 }
@@ -174,7 +209,7 @@ function AdjacencySection({ unit: u }: { unit: Unit }) {
                   {e.percent < 0 ? '' : '+'}
                   {e.percent}%
                 </strong>{' '}
-                {e.resource} · to adjacent{' '}
+                {resourceName(e.resource)} · to adjacent{' '}
                 {e.targets.map((t) => t.replace(/_/g, ' ').toLowerCase()).join(' or ')}
               </>
             }
@@ -346,7 +381,7 @@ function BuildSection({
     .filter((b): b is Unit => Boolean(b?.buildPower))
     .map((b) => [builderName(b), `${(u.buildTime / b.buildPower!).toFixed(1)}s`] as const);
 
-  if (!u.builtBy.length && !u.builds.length && !u.upgradesTo) return null;
+  if (!u.builtBy.length && !u.builds.length) return null;
 
   return (
     <div className="section">
@@ -369,12 +404,109 @@ function BuildSection({
           {chips(u.builds)}
         </>
       )}
-      {u.upgradesTo && (
-        <>
-          <h3 style={{ marginTop: 16 }}>Upgrades to</h3>
-          {chips([u.upgradesTo])}
-        </>
-      )}
     </div>
   );
 }
+
+// An upgrade is charged the target's full build price with no rebate for the
+// structure it replaces, and the structure raises the replacement itself — so
+// the price and the wall-clock time both belong here, next to the target,
+// rather than being left for the reader to look up on the next unit's page.
+function UpgradeSection({
+  unit: u,
+  byId,
+  iconManifest,
+  onOpen,
+}: {
+  unit: Unit;
+  byId: Map<string, Unit>;
+  iconManifest: Set<string>;
+  onOpen: (id: string) => void;
+}) {
+  const chain = upgradeChain(u, byId);
+  const step = chain[0];
+  if (!step) return null;
+  const { to } = step;
+
+  // Two steps from here to the top is common (T1 extractors, radar, factories),
+  // and "what does the whole climb cost" is the question that actually gets
+  // asked — so total the chain rather than making the reader open each tier.
+  const whole = chain.length > 1 && {
+    top: chain[chain.length - 1].to,
+    alloys: chain.reduce((n, s) => n + s.alloys, 0),
+    energy: chain.reduce((n, s) => n + s.energy, 0),
+    seconds: chain.reduce((n, s) => n + s.seconds, 0),
+  };
+
+  return (
+    <Section title="Upgrades to">
+      <div className="unit-links">
+        <button type="button" className="unit-link" onClick={() => onOpen(to.id)}>
+          <UnitIcon
+            icon={to.icon}
+            faction={to.faction}
+            manifest={iconManifest}
+            size={20}
+            muted={to.status === 'no-model'}
+          />
+          {builderName(to)}
+        </button>
+      </div>
+
+      <dl className="statgrid" style={{ marginTop: 8 }}>
+        <Stat label="Alloy" value={<span className="alloy-val">{fmt(step.alloys)}</span>} />
+        <Stat label="Energy" value={<span className="energy-val">{fmt(step.energy)}</span>} />
+        <Stat
+          label="Time"
+          value={
+            <>
+              {duration(step.seconds)}
+              <small> alone</small>
+            </>
+          }
+        />
+      </dl>
+
+      <dl className="kv" style={{ marginTop: 8 }}>
+        <KV k="Drain" v={rateLine({ alloys: step.alloysPerSec, energy: step.energyPerSec })} />
+        {step.deltas.length > 0 && <KV k="Changes" v={<Deltas step={step} />} />}
+        {step.alloyPayback != null && (
+          <KV k="Alloy payback" v={<span className="alloy-val">{duration(step.alloyPayback)}</span>} />
+        )}
+        {whole && (
+          <KV
+            k={`All the way to ${builderName(whole.top)}`}
+            v={
+              <>
+                <span className="alloy-val">{fmt(whole.alloys)} alloy</span> ·{' '}
+                <span className="energy-val">{fmt(whole.energy)} energy</span> · {duration(whole.seconds)}
+              </>
+            }
+          />
+        )}
+      </dl>
+
+      <p className="hint" style={{ margin: '8px 0 0' }}>
+        Costs the full price of the {shortName(to).toLowerCase()} — there is no discount and nothing is
+        refunded for the structure it replaces. It builds its own replacement at {fmt(step.power)} build
+        power, which is what that time assumes; engineers can assist to cut it.
+        {step.alloyPayback != null && ' Payback counts the alloy half of the price only.'}
+      </p>
+    </Section>
+  );
+}
+
+const Deltas = ({ step }: { step: UpgradeStep }) => (
+  <span className="deltas">
+    {step.deltas.map((d) => (
+      <span className="dline" key={d.label}>
+        {d.label} <span className="dim">{fmt(d.from)}</span>
+        {d.perSecond ? '/s' : ''} →{' '}
+        <strong className={d.to > d.from ? 'good' : 'bad'}>
+          {fmt(d.to)}
+          {d.perSecond ? '/s' : ''}
+        </strong>
+      </span>
+    ))}
+  </span>
+);
