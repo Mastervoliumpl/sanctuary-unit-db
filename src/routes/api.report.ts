@@ -41,14 +41,19 @@ const ok = (outcome: string) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
-function parseBody(raw: unknown): ReportBody | null {
+// Returns the parsed body or the name of the first check that failed — the
+// mod logs the server's answer, so a precise reason debugs a field problem
+// from the game side alone.
+function parseBody(raw: unknown): ReportBody | string {
   const d = raw as ReportBody | null;
-  if (typeof d?.ticket !== 'string' || typeof d.identity !== 'string') return null;
-  if (!Array.isArray(d.participants) || !Array.isArray(d.winnerSteamIds)) return null;
+  if (typeof d?.ticket !== 'string') return 'ticket';
+  if (typeof d.identity !== 'string') return 'identity';
+  if (!Array.isArray(d.participants) || !Array.isArray(d.winnerSteamIds)) return 'arrays';
   const ids = d.participants.map((p) => p?.steamId);
-  if (ids.length !== 2 || !ids.every((s) => typeof s === 'string' && /^\d{17}$/.test(s))) return null;
-  if (ids[0] === ids[1]) return null;
-  if (!d.winnerSteamIds.every((s) => typeof s === 'string' && /^\d{17}$/.test(s))) return null;
+  if (ids.length !== 2) return 'participant count';
+  if (!ids.every((s) => typeof s === 'string' && /^\d{17}$/.test(s))) return 'participant steamIds';
+  if (ids[0] === ids[1]) return 'duplicate participants';
+  if (!d.winnerSteamIds.every((s) => typeof s === 'string' && /^\d{17}$/.test(s))) return 'winnerSteamIds';
   return d;
 }
 
@@ -56,13 +61,14 @@ export const Route = createFileRoute('/api/report')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        let body: ReportBody | null;
+        let raw: unknown;
         try {
-          body = parseBody(await request.json());
+          raw = await request.json();
         } catch {
-          body = null;
+          return bad(400, 'Body is not JSON.');
         }
-        if (!body) return bad(400, 'Malformed report.');
+        const body = parseBody(raw);
+        if (typeof body === 'string') return bad(400, `Malformed report: ${body}.`);
 
         const reporterSteamId = await verifyWebApiTicket(body.ticket, body.identity);
         if (!reporterSteamId) return bad(403, 'Steam did not vouch for this ticket.');
