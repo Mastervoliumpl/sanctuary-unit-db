@@ -45,7 +45,6 @@ function LadderPage() {
                 </li>
               ))}
             </ul>
-            <p className="hint">Official maps only — they're already in your game.</p>
           </div>
         </aside>
         <section className="results">
