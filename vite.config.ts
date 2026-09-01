@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
+import { nitro } from 'nitro/vite';
 import viteReact from '@vitejs/plugin-react';
 
 // Split personality: the content pages (units, calculator, maps) are
@@ -26,6 +27,11 @@ export default defineConfig(({ mode }) => {
       tanstackStart({
         prerender: { enabled: true, crawlLinks: true },
       }),
+      // Nitro packages the server for the deployment target: on Vercel it
+      // emits the Build Output API layout (.vercel/output) their platform
+      // serves — without it the build has no shape Vercel recognises and
+      // every route 404s.
+      nitro(),
       viteReact(),
     ],
   };
