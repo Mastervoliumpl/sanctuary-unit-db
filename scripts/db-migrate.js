@@ -2,7 +2,11 @@
 // a schema_migrations table. Plain Node like the rest of scripts/ — reads
 // DATABASE_URL from the environment or .env.
 //
-//   node scripts/db-migrate.js
+//   node scripts/db-migrate.js            # apply everything pending
+//   node scripts/db-migrate.js 0005       # apply pending up to and including 0005
+//
+// The bound exists for two-step rollouts: an additive migration first, the
+// new code deployed, then the migration that drops what the old code used.
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -32,8 +36,10 @@ try {
 
   const applied = new Set((await sql`select name from schema_migrations`).map((r) => r.name));
   const dir = join(root, 'supabase', 'migrations');
+  const until = process.argv[2];
   const pending = readdirSync(dir)
     .filter((f) => f.endsWith('.sql') && !applied.has(f))
+    .filter((f) => !until || f.slice(0, until.length) <= until)
     .sort();
 
   if (pending.length === 0) {

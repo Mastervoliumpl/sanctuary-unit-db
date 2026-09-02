@@ -1645,6 +1645,174 @@ img.unit-icon[data-muted='true'] {
   cursor: default;
 }
 
+/* Play page: the queue grid. */
+.play {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 14px 16px 60px;
+}
+.play-signin {
+  margin-bottom: 14px;
+}
+.queue-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.queue-card[data-active] {
+  border-color: var(--accent);
+}
+.queue-count {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 650;
+}
+.match-ready {
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-raised);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.play-reporter {
+  margin-top: 14px;
+  max-width: 480px;
+}
+
+/* Standings: the live-queue strip and the mode tabs. */
+.queue-strip {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  gap: 14px;
+}
+.queue-strip li {
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.queue-strip strong {
+  font-size: 16px;
+  color: var(--text);
+}
+.btn.block {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+.mode-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.mode-tab {
+  padding: 5px 12px;
+  border-radius: 6px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.mode-tab:hover,
+.mode-tab[data-active] {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+/* Match room teams. */
+.match-teams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+.team-col h3 {
+  margin: 0 0 6px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.team-col .match-player + .match-player {
+  margin-top: 6px;
+}
+.team-vs {
+  align-self: center;
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 0 4px;
+}
+.host-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  vertical-align: 1px;
+}
+.cancel-line {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+}
+
+/* Profile rating chips. */
+.rating-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.rating-chip {
+  min-width: 92px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-raised);
+}
+.rating-chip .lb-rating {
+  font-size: 18px;
+}
+.rating-chip.overall {
+  border-color: var(--accent);
+}
+
+/* Admin disputes. */
+.dispute {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+.dispute-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.dispute p {
+  margin: 4px 0;
+}
+
+.reporter-card .dl-btn {
+  display: block;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.reporter-card .install {
+  margin-bottom: 0;
+  background: var(--bg);
+}
+
 .map-pool h3 {
   margin: 0 0 6px;
   font-size: 10.5px;
@@ -1885,7 +2053,12 @@ img.unit-icon[data-muted='true'] {
     border-right: 0;
     border-bottom: 1px solid var(--border);
   }
-  .match-vs {
+  .match-vs,
+  .match-teams,
+  .queue-grid {
     grid-template-columns: 1fr;
+  }
+  .team-vs {
+    display: none;
   }
 }

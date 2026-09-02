@@ -12,34 +12,26 @@ interface PlayerRow {
   steam_id: string;
   persona_name: string;
   avatar_url: string | null;
-  rating: number;
-  games_played: number;
-  wins: number;
-  losses: number;
+  is_admin: boolean;
   banned_at: Date | null;
 }
-
-export const toMe = (p: PlayerRow): Me => ({
-  playerId: p.id,
-  steamId: p.steam_id,
-  personaName: p.persona_name,
-  avatarUrl: p.avatar_url,
-  rating: p.rating,
-  gamesPlayed: p.games_played,
-  wins: p.wins,
-  losses: p.losses,
-});
 
 export async function loadSessionPlayer(): Promise<Me | null> {
   const session = await readSession();
   if (!session) return null;
   const rows = await sql()<PlayerRow[]>`
     select id, steam_id, coalesce(display_name, persona_name) as persona_name,
-           avatar_url, rating, games_played, wins, losses, banned_at
+           avatar_url, is_admin, banned_at
     from players where id = ${session.playerId}`;
   const player = rows[0];
   if (!player || player.banned_at) return null;
-  return toMe(player);
+  return {
+    playerId: player.id,
+    steamId: player.steam_id,
+    personaName: player.persona_name,
+    avatarUrl: player.avatar_url,
+    isAdmin: player.is_admin,
+  };
 }
 
 // Inside mutating handlers: resolves the signed-in, unbanned player or throws.
@@ -47,4 +39,10 @@ export async function requirePlayer(): Promise<Me> {
   const player = await loadSessionPlayer();
   if (!player) throw new Error('Not signed in');
   return player;
+}
+
+export async function requireAdmin(): Promise<Me> {
+  const me = await requirePlayer();
+  if (!me.isAdmin) throw new Error('Admins only');
+  return me;
 }

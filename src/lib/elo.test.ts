@@ -9,6 +9,7 @@ import {
   RATING_FLOOR,
   START_RATING,
   applyResult,
+  applyTeamResult,
   expectedScore,
   kFactor,
 } from './elo';
@@ -74,5 +75,32 @@ describe('applyResult', () => {
     const r = applyResult(veteran(1100), veteran(1000));
     expect(r.winnerAfter).toBe(1107);
     expect(r.loserAfter).toBe(993);
+  });
+});
+
+describe('applyTeamResult', () => {
+  const veteran = (rating: number) => ({ rating, gamesPlayed: 100 });
+
+  it('rates each player against the opposing team average', () => {
+    // Winners average 1100, losers average 1000. The 1200 winner expected
+    // ~0.76 vs 1000 → +5; the 1000 winner expected 0.5 → +10. Losers face
+    // 1100: the 1100 loser expected 0.5 → -10; the 900 loser ~0.24 → -5.
+    const r = applyTeamResult([veteran(1200), veteran(1000)], [veteran(1100), veteran(900)]);
+    expect(r.winnersAfter).toEqual([1205, 1010]);
+    expect(r.losersAfter).toEqual([1090, 895]);
+  });
+
+  it('is zero-sum for equal-K teams of equal average', () => {
+    const r = applyTeamResult([veteran(1050), veteran(950)], [veteran(1000), veteran(1000)]);
+    const won = r.winnersAfter[0] + r.winnersAfter[1] - 2000;
+    const lost = 2000 - (r.losersAfter[0] + r.losersAfter[1]);
+    expect(won).toBe(lost);
+  });
+
+  it('reduces to the 1v1 result for one-player teams', () => {
+    const team = applyTeamResult([veteran(1100)], [veteran(1000)]);
+    const solo = applyResult(veteran(1100), veteran(1000));
+    expect(team.winnersAfter[0]).toBe(solo.winnerAfter);
+    expect(team.losersAfter[0]).toBe(solo.loserAfter);
   });
 });

@@ -2,7 +2,15 @@
 // (queue_radius / pair_queue) — if these change, the SQL must change too.
 
 import { describe, expect, it } from 'vitest';
-import { RADIUS_BASE, RADIUS_PER_MINUTE, canPair, pairQueue, searchRadius } from './matchmaking';
+import {
+  RADIUS_BASE,
+  RADIUS_PER_MINUTE,
+  bestSplit,
+  canPair,
+  formGroups,
+  pairQueue,
+  searchRadius,
+} from './matchmaking';
 
 const MIN = 60_000;
 const entry = (playerId: string, rating: number, joinedAtMs: number) => ({
@@ -62,5 +70,56 @@ describe('pairQueue', () => {
   it('handles the empty and single-player queue', () => {
     expect(pairQueue([], 0)).toEqual([]);
     expect(pairQueue([entry('alone', 1000, 0)], 60 * MIN)).toEqual([]);
+  });
+});
+
+describe('formGroups', () => {
+  it('needs the full count before a team game forms', () => {
+    const three = [entry('a', 1000, 0), entry('b', 1000, 0), entry('c', 1000, 0)];
+    expect(formGroups(three, 4, MIN)).toEqual([]);
+    const four = [...three, entry('d', 1000, 0)];
+    expect(formGroups(four, 4, MIN).map((g) => g.map((e) => e.playerId))).toEqual([['a', 'b', 'c', 'd']]);
+  });
+
+  it('skips an anchor nobody is in range of and lets the rest play', () => {
+    const q = [entry('lonely', 2000, 0), entry('a', 1000, 1000), entry('b', 1000, 2000)];
+    expect(formGroups(q, 2, MIN).map((g) => g.map((e) => e.playerId))).toEqual([['a', 'b']]);
+  });
+
+  it('takes the longest-waiting candidates when more than enough are in range', () => {
+    const q = [
+      entry('anchor', 1000, 0),
+      entry('old', 1000, 1000),
+      entry('older', 1000, 500),
+      entry('new', 1000, 9000),
+    ];
+    expect(formGroups(q, 3, MIN)[0].map((e) => e.playerId)).toEqual(['anchor', 'older', 'old']);
+  });
+});
+
+describe('bestSplit', () => {
+  const p = (playerId: string, rating: number) => ({ playerId, rating });
+
+  it('picks the split with the smallest average gap', () => {
+    // 1200+900 = 2100 vs 1100+1000 = 2100 — a perfect split exists.
+    const s = bestSplit([p('a', 1200), p('b', 1100), p('c', 1000), p('d', 900)], 2);
+    expect(s.gap).toBe(0);
+    expect(s.team1).toEqual(['a', 'd']);
+    expect(s.team2).toEqual(['b', 'c']);
+  });
+
+  it('pins player 0 to team 1 and covers 3v3', () => {
+    const s = bestSplit(
+      [p('a', 1200), p('b', 1100), p('c', 1000), p('d', 1000), p('e', 900), p('f', 800)],
+      3,
+    );
+    expect(s.team1).toContain('a');
+    expect(s.team1).toHaveLength(3);
+    expect(s.team2).toHaveLength(3);
+    expect(s.gap).toBe(0); // 1200+1000+800 vs 1100+1000+900
+  });
+
+  it('is the trivial split for 1v1', () => {
+    expect(bestSplit([p('a', 1000), p('b', 1500)], 1)).toEqual({ team1: ['a'], team2: ['b'], gap: 500 });
   });
 });

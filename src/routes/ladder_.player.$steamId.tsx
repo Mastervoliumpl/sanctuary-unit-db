@@ -1,17 +1,29 @@
-// A player's public ladder profile: rating, record, match history and the
-// rating graph. Public — completed matches are the ladder's record. On your
-// own profile you can set a custom display name (empty = your Steam name).
+// A player's public ladder profile: every mode's rating, the overall, match
+// history across modes and a rating graph per mode. Public — completed
+// matches are the ladder's record. On your own profile you can set a custom
+// display name (empty = your Steam name).
 
 import { useEffect, useState } from 'react';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { RatingGraph } from '../components/RatingGraph';
 import { loadMe } from '../lib/auth';
+import { MODES, isMode, type Mode } from '../lib/ladder-modes';
 import { setDisplayName } from '../server/auth-fns';
 import { profileGet } from '../server/match-fns';
 import type { Me, Profile } from '../lib/ladder-types';
 
+interface ProfileSearch {
+  mode?: string;
+}
+
+const str = (v: unknown): string | undefined => {
+  const s = v == null ? '' : String(v);
+  return s ? s : undefined;
+};
+
 export const Route = createFileRoute('/ladder_/player/$steamId')({
   ssr: false,
+  validateSearch: (raw: Record<string, unknown>): ProfileSearch => ({ mode: str(raw.mode) }),
   head: () => ({ meta: [{ title: 'Player — SanctuaryDB' }] }),
   loader: ({ params }): Promise<Profile | null> =>
     profileGet({ data: { steamId: params.steamId } }).catch(() => null),
@@ -77,6 +89,7 @@ function NameEditor({ current }: { current: string }) {
 
 function PlayerPage() {
   const profile = Route.useLoaderData();
+  const search = Route.useSearch();
   const [me, setMe] = useState<Me | null>(null);
 
   useEffect(() => {
@@ -97,6 +110,14 @@ function PlayerPage() {
     );
   }
 
+  // The graph follows ?mode=, falling back to the first mode with games.
+  const playedModes = MODES.filter((m) => (profile.ratings[m]?.gamesPlayed ?? 0) > 0);
+  const graphMode: Mode | null =
+    isMode(search.mode) && playedModes.includes(search.mode) ? search.mode : (playedModes[0] ?? null);
+  const series = graphMode
+    ? profile.history.filter((h) => h.mode === graphMode).map((h) => h.ratingAfter)
+    : [];
+
   return (
     <main className="profile">
       <Link to="/ladder" className="linkish back">
@@ -107,15 +128,60 @@ function PlayerPage() {
         {profile.avatarUrl && <img src={profile.avatarUrl} alt="" width={56} height={56} />}
         <div>
           <h1>{profile.personaName}</h1>
-          <p className="dim">
-            <strong className="lb-rating">{profile.rating}</strong> · {profile.wins}W {profile.losses}L ·{' '}
-            {profile.gamesPlayed} game{profile.gamesPlayed === 1 ? '' : 's'}
-          </p>
           {me?.steamId === profile.steamId && <NameEditor current={profile.personaName} />}
         </div>
       </header>
 
-      {profile.history.length > 0 && <RatingGraph ratings={profile.history.map((h) => h.ratingAfter)} />}
+      <div className="rating-chips">
+        {MODES.map((m) => {
+          const r = profile.ratings[m];
+          return (
+            <div className="rating-chip" key={m}>
+              <div className="rk">{m}</div>
+              {r && r.gamesPlayed > 0 ? (
+                <>
+                  <div className="lb-rating">{r.rating}</div>
+                  <div className="dim">
+                    {r.wins}W {r.losses}L
+                  </div>
+                </>
+              ) : (
+                <div className="dim">unrated</div>
+              )}
+            </div>
+          );
+        })}
+        <div className="rating-chip overall">
+          <div className="rk">Overall</div>
+          {profile.overall !== null ? (
+            <div className="lb-rating">{profile.overall}</div>
+          ) : (
+            <div className="dim">unrated</div>
+          )}
+        </div>
+      </div>
+
+      {graphMode && (
+        <>
+          {playedModes.length > 1 && (
+            <nav className="mode-tabs">
+              {playedModes.map((m) => (
+                <Link
+                  key={m}
+                  to="/ladder/player/$steamId"
+                  params={{ steamId: profile.steamId }}
+                  search={{ mode: m }}
+                  className="mode-tab"
+                  data-active={m === graphMode || undefined}
+                >
+                  {m}
+                </Link>
+              ))}
+            </nav>
+          )}
+          <RatingGraph ratings={series} />
+        </>
+      )}
 
       {profile.history.length === 0 ? (
         <p className="empty">No ranked games yet.</p>
@@ -124,7 +190,8 @@ function PlayerPage() {
           <thead>
             <tr>
               <th>Result</th>
-              <th>Opponent</th>
+              <th>Mode</th>
+              <th>Opponents</th>
               <th>Map</th>
               <th>Rating</th>
               <th>Played</th>
@@ -136,14 +203,16 @@ function PlayerPage() {
                 <td>
                   <span className={`outcome ${h.outcome}`}>{h.outcome}</span>
                 </td>
+                <td className="dim">{h.mode}</td>
                 <td>
-                  {h.opponentSteamId ? (
-                    <Link to="/ladder/player/$steamId" params={{ steamId: h.opponentSteamId }}>
-                      {h.opponentName}
-                    </Link>
-                  ) : (
-                    h.opponentName
-                  )}
+                  {h.opponents.map((o, i) => (
+                    <span key={o.steamId}>
+                      {i > 0 && ', '}
+                      <Link to="/ladder/player/$steamId" params={{ steamId: o.steamId }}>
+                        {o.personaName}
+                      </Link>
+                    </span>
+                  ))}
                 </td>
                 <td>{h.mapName}</td>
                 <td>

@@ -60,15 +60,19 @@ test('maps listing renders cards and opens a map page by slug', async ({ page })
   expect(errors).toEqual([]);
 });
 
-test('ladder page renders its shell with no backend', async ({ page }) => {
+test('ladder and play pages render their shells with no backend', async ({ page }) => {
   // e2e serves the static build — no server functions exist here, so this
-  // pins the degradation contract: the ladder must render signed-out/empty
-  // instead of crashing. (No console-error assertion: the leaderboard fetch
-  // 404s by design in this environment, and the browser logs that itself.)
+  // pins the degradation contract: both pages must render signed-out/empty
+  // instead of crashing. (No console-error assertion: the fetches 404 by
+  // design in this environment, and the browser logs that itself.)
   await page.goto('/ladder');
-  await expect(page.locator('.queue-widget')).toContainText('Sign in through Steam');
+  await expect(page.locator('.mode-tabs')).toBeVisible();
   await expect(page.locator('.map-pool li').first()).toBeVisible();
   await expect(page.locator('.results .empty')).toContainText("isn't reachable");
+
+  await page.goto('/play');
+  await expect(page.locator('.queue-card')).toHaveCount(3);
+  await expect(page.locator('.play-signin')).toContainText('Sign in through Steam');
 });
 
 test('calculator restores a shared setup and computes the documented example', async ({ page }) => {
