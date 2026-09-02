@@ -102,11 +102,16 @@ function PlayPage() {
 
   const signedIn = !!me;
   const blocked = !!status?.matchId;
+  const liveGames = status?.liveGames ?? counts?.liveGames ?? null;
 
   return (
     <>
       <div className="toolbar">
-        <span className="toolbar-summary">Play ranked</span>
+        <span className="toolbar-summary">
+          Play ranked
+          {liveGames !== null &&
+            ` · ${liveGames === 0 ? 'no games live right now' : `${liveGames} game${liveGames === 1 ? '' : 's'} live now`}`}
+        </span>
       </div>
       <main className="play">
         {me === null && (
@@ -128,7 +133,7 @@ function PlayPage() {
               mode={mode}
               status={status?.queues[mode] ?? null}
               joinedAtMs={joinedAt[mode]}
-              waiting={status ? status.queues[mode].waiting : (counts?.[mode] ?? null)}
+              waiting={status ? status.queues[mode].waiting : (counts?.waiting[mode] ?? null)}
               signedIn={signedIn}
               blocked={blocked}
               busy={busy === mode}

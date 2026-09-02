@@ -38,15 +38,18 @@ const runPairingPass = (mode: Mode) =>
 const sweepDueMatches = () => sql()`select finalize_due_matches()`;
 
 // Live entries only: stale ones are swept by pairing passes, but the count is
-// read by visitors who never trigger one.
+// read by visitors who never trigger one. Plus how many games are on right
+// now — the other half of "is anything happening?".
 async function countQueues(): Promise<QueueCounts> {
   const rows = await sql()<{ mode: Mode; n: number }[]>`
     select mode, count(*)::int as n from queue_entries
     where heartbeat_at > now() - interval '90 seconds'
     group by mode`;
-  const counts: QueueCounts = { '1v1': 0, '2v2': 0, '3v3': 0 };
-  for (const r of rows) counts[r.mode] = r.n;
-  return counts;
+  const waiting: Record<Mode, number> = { '1v1': 0, '2v2': 0, '3v3': 0 };
+  for (const r of rows) waiting[r.mode] = r.n;
+  const [live] = await sql()<{ n: number }[]>`
+    select count(*)::int as n from matches where status in ('in_progress', 'reported', 'disputed')`;
+  return { waiting, liveGames: live?.n ?? 0 };
 }
 
 async function playStatus(playerId: string): Promise<PlayStatus> {
@@ -65,11 +68,11 @@ async function playStatus(playerId: string): Promise<PlayStatus> {
       inQueue: entry !== undefined,
       queuedSeconds,
       searchRadius: queuedSeconds === null ? null : searchRadius(queuedSeconds),
-      waiting: counts[mode],
+      waiting: counts.waiting[mode],
       needed: playersNeeded(mode),
     };
   }
-  return { matchId, queues };
+  return { matchId, queues, liveGames: counts.liveGames };
 }
 
 const modeInput = (data: unknown): { mode: Mode } => {

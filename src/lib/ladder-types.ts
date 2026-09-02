@@ -24,9 +24,13 @@ export interface QueueModeStatus {
 export interface PlayStatus {
   matchId: string | null; // an open match to go to instead of queueing
   queues: Record<Mode, QueueModeStatus>;
+  liveGames: number; // matches in progress right now, all modes
 }
 
-export type QueueCounts = Record<Mode, number>;
+export interface QueueCounts {
+  waiting: Record<Mode, number>;
+  liveGames: number;
+}
 
 export type MatchStatus = 'in_progress' | 'reported' | 'completed' | 'disputed' | 'cancelled';
 
@@ -100,6 +104,11 @@ export interface Profile {
   ratings: Partial<Record<Mode, RatingSummary>>; // only modes with a row
   overall: number | null; // games-weighted across played modes; null before any game
   history: ProfileMatch[]; // oldest first, all modes
+}
+
+export interface AdminMatches {
+  live: MatchView[]; // in progress, reported or disputed
+  recent: MatchView[]; // latest completed
 }
 
 export interface DisputeView {

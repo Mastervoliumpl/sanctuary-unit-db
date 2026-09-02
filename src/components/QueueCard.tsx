@@ -2,7 +2,7 @@
 // honest signal of whether a game is likely soon, so it's always shown —
 // signed in or not.
 
-import { playersNeeded, type Mode } from '../lib/ladder-modes';
+import type { Mode } from '../lib/ladder-modes';
 import { searchRadius } from '../lib/matchmaking';
 import { useNow } from '../lib/use-now';
 import type { QueueModeStatus } from '../lib/ladder-types';
@@ -36,7 +36,6 @@ export function QueueCard({
   onJoin: () => void;
   onLeave: () => void;
 }) {
-  const needed = playersNeeded(mode);
   const inQueue = status?.inQueue ?? false;
 
   // The server says how long we've waited once per poll; the page anchors a
@@ -48,9 +47,7 @@ export function QueueCard({
   return (
     <div className="queue-widget queue-card" data-active={inQueue || undefined}>
       <h2>Ranked {mode}</h2>
-      <p className="queue-count">
-        {waiting === null ? '—' : waiting} in queue <span className="dim">· need {needed}</span>
-      </p>
+      <p className="queue-count">{waiting === null ? '—' : waiting} in queue</p>
       {inQueue && status ? (
         <>
           <p className="queue-pulse">

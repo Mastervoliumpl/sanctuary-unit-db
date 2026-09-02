@@ -1,12 +1,52 @@
-// Admin: the disputes queue. One admin (players.is_admin), server-gated —
-// the page only decides what to render, this decides what's allowed.
+// Admin: disputes, live games, recent results, and deleting matches that
+// shouldn't count. One admin (players.is_admin), server-gated — the page
+// only decides what to render, this decides what's allowed.
 
 import { createServerFn } from '@tanstack/react-start';
 import { sql } from './db';
-import { loadParticipants, toParticipant } from './match-data';
+import { loadParticipants, toParticipant, toView, type MatchRow } from './match-data';
 import { requireAdmin } from './player';
 import type { Mode } from '../lib/ladder-modes';
-import type { DisputeView } from '../lib/ladder-types';
+import type { AdminMatches, DisputeView, MatchView } from '../lib/ladder-types';
+
+const matchIdInput = (data: unknown): { matchId: string } => {
+  const d = data as { matchId?: unknown } | null;
+  if (typeof d?.matchId !== 'string' || !/^[0-9a-f-]{36}$/.test(d.matchId)) {
+    throw new Error('matchId required');
+  }
+  return { matchId: d.matchId };
+};
+
+async function views(rows: MatchRow[]): Promise<MatchView[]> {
+  const participants = await loadParticipants(rows.map((r) => r.id));
+  return rows.map((m) =>
+    toView(
+      m,
+      participants.filter((p) => p.match_id === m.id),
+    ),
+  );
+}
+
+export const adminMatches = createServerFn({ method: 'POST' }).handler(async (): Promise<AdminMatches> => {
+  await requireAdmin();
+  const live = await sql()<MatchRow[]>`
+    select * from matches where status in ('in_progress', 'reported', 'disputed')
+    order by created_at desc`;
+  const recent = await sql()<MatchRow[]>`
+    select * from matches where status = 'completed'
+    order by completed_at desc limit 25`;
+  return { live: await views(live), recent: await views(recent) };
+});
+
+// Removes a match outright. Completed ones have their recorded rating
+// changes reversed first (see admin_delete_match) — for test games that
+// shouldn't have counted.
+export const adminDelete = createServerFn({ method: 'POST' })
+  .validator(matchIdInput)
+  .handler(async ({ data }): Promise<void> => {
+    await requireAdmin();
+    await sql()`select admin_delete_match(${data.matchId})`;
+  });
 
 export const adminDisputes = createServerFn({ method: 'POST' }).handler(async (): Promise<DisputeView[]> => {
   await requireAdmin();
@@ -52,14 +92,12 @@ export const adminDisputes = createServerFn({ method: 'POST' }).handler(async ()
 
 export const adminResolve = createServerFn({ method: 'POST' })
   .validator((data: unknown): { matchId: string; action: 'team1' | 'team2' | 'void' } => {
-    const d = data as { matchId?: unknown; action?: unknown } | null;
-    if (typeof d?.matchId !== 'string' || !/^[0-9a-f-]{36}$/.test(d.matchId)) {
-      throw new Error('matchId required');
-    }
+    const { matchId } = matchIdInput(data);
+    const d = data as { action?: unknown };
     if (d.action !== 'team1' && d.action !== 'team2' && d.action !== 'void') {
       throw new Error('action must be team1, team2 or void');
     }
-    return { matchId: d.matchId, action: d.action };
+    return { matchId, action: d.action };
   })
   .handler(async ({ data }): Promise<void> => {
     const me = await requireAdmin();

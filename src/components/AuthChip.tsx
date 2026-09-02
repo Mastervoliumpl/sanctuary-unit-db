@@ -47,6 +47,11 @@ export function AuthChip() {
           Your match
         </Link>
       )}
+      {me.isAdmin && (
+        <Link to="/ladder/admin" className="navlink" activeProps={{ className: 'navlink active' }}>
+          Admin
+        </Link>
+      )}
       <Link to="/ladder/player/$steamId" params={{ steamId: me.steamId }} className="auth-me">
         {me.avatarUrl && <img src={me.avatarUrl} alt="" width={22} height={22} />}
         <span>{me.personaName}</span>

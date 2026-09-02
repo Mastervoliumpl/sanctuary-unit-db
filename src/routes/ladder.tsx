@@ -76,9 +76,13 @@ function LadderPage() {
               {MODES.map((m) => (
                 <li key={m}>
                   <span>{m}</span>
-                  <strong>{counts ? counts[m] : '—'}</strong>
+                  <strong>{counts ? counts.waiting[m] : '—'}</strong>
                 </li>
               ))}
+              <li>
+                <span>live games</span>
+                <strong>{counts ? counts.liveGames : '—'}</strong>
+              </li>
             </ul>
             <Link to="/play" className="btn primary block">
               Play ranked
