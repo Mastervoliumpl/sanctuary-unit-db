@@ -7,10 +7,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { AlertSettings } from '../components/AlertSettings';
 import { QueueCard } from '../components/QueueCard';
 import { ReporterCard } from '../components/ReporterCard';
 import { loadMe } from '../lib/auth';
 import { MODES, type Mode } from '../lib/ladder-modes';
+import { primeAudio, startMatchAlert } from '../lib/match-alert';
 import { queueCounts, queueJoin, queueLeave, queueStatus } from '../server/queue-fns';
 import type { Me, PlayStatus, QueueCounts } from '../lib/ladder-types';
 
@@ -42,6 +44,7 @@ function PlayPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const alive = useRef(true);
+  const wasQueued = useRef(false); // so a match that forms from OUR queue rings the alert
 
   useEffect(() => {
     alive.current = true;
@@ -64,9 +67,13 @@ function PlayPage() {
     // whether it just formed (even on the join click itself, when someone
     // was already waiting) or it's one from earlier. You can't queue with
     // one open anyway, and the match room links back here once it's done.
+    // The alert only rings when a queue we were in produced it — an old
+    // match you're returning to isn't news.
     if (s.matchId) {
+      if (wasQueued.current) startMatchAlert(s.matchId);
       navigate({ to: '/ladder/match/$matchId', params: { matchId: s.matchId }, replace: true });
     }
+    wasQueued.current = MODES.some((m) => s.queues[m].inQueue);
   };
 
   useEffect(() => {
@@ -137,14 +144,21 @@ function PlayPage() {
               signedIn={signedIn}
               blocked={blocked}
               busy={busy === mode}
-              onJoin={() => act(mode, () => queueJoin({ data: { mode } }))}
+              onJoin={() => {
+                // Inside the click, so the browser lets the ding play later.
+                primeAudio();
+                // The join itself may complete the match (someone waiting).
+                wasQueued.current = true;
+                void act(mode, () => queueJoin({ data: { mode } }));
+              }}
               onLeave={() => act(mode, () => queueLeave({ data: { mode } }))}
             />
           ))}
         </div>
         {error && <p className="queue-error">{error}</p>}
 
-        <section className="play-reporter">
+        <section className="play-extras">
+          {signedIn && <AlertSettings />}
           <ReporterCard />
         </section>
       </main>

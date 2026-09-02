@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { loadMe } from '../lib/auth';
+import { stopMatchAlert, useMatchAlert } from '../lib/match-alert';
 import { useNow } from '../lib/use-now';
 import { matchCancel, matchConfirm, matchDispute, matchGet, matchReport } from '../server/match-fns';
 import type { MatchParticipant, MatchView, Me } from '../lib/ladder-types';
@@ -36,6 +37,7 @@ function MatchRoom() {
   const [error, setError] = useState<string | null>(null);
   const alive = useRef(true);
   const now = useNow();
+  const alerting = useMatchAlert() === matchId;
 
   useEffect(() => {
     alive.current = true;
@@ -44,6 +46,11 @@ function MatchRoom() {
       alive.current = false;
     };
   }, []);
+
+  // A match that's over has nothing left to announce.
+  useEffect(() => {
+    if (match && !OPEN.includes(match.status)) stopMatchAlert();
+  }, [match]);
 
   const matchRef = useRef(match);
   useEffect(() => {
@@ -67,6 +74,7 @@ function MatchRoom() {
   }, [matchId]);
 
   const act = async (fn: () => Promise<MatchView>) => {
+    stopMatchAlert(); // any action here means you've seen it
     setBusy(true);
     setError(null);
     try {
@@ -104,6 +112,15 @@ function MatchRoom() {
 
   return (
     <main className="match-room">
+      {alerting && (
+        <div className="match-found">
+          <strong>🔔 Match found!</strong>
+          <button type="button" className="btn primary" onClick={stopMatchAlert}>
+            OK, I'm here
+          </button>
+        </div>
+      )}
+
       <Link to="/ladder" className="linkish back">
         ← Ladder
       </Link>

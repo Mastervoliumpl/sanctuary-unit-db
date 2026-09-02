@@ -1682,9 +1682,45 @@ img.unit-icon[data-muted='true'] {
   font-size: 15px;
   font-weight: 650;
 }
-.play-reporter {
+.play-extras {
   margin-top: 14px;
-  max-width: 480px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.alert-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 12.5px;
+}
+.alert-row input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+.alert-volume input[type='range'] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+/* The "you've been matched" bar on the match page; stays until OK. */
+.match-found {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-raised));
+  animation: match-found-pulse 1.2s ease-in-out infinite;
+}
+@keyframes match-found-pulse {
+  50% {
+    background: color-mix(in srgb, var(--accent) 34%, var(--bg-raised));
+  }
 }
 
 /* Standings: the live-queue strip and the mode tabs. */
@@ -2074,7 +2110,8 @@ img.unit-icon[data-muted='true'] {
   }
   .match-vs,
   .match-teams,
-  .queue-grid {
+  .queue-grid,
+  .play-extras {
     grid-template-columns: 1fr;
   }
   .team-vs {
