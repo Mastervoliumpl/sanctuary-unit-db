@@ -49,6 +49,7 @@ function AdminPage() {
   const [me, setMe] = useState<Me | null | undefined>(undefined);
   const [disputes, setDisputes] = useState<DisputeView[] | null>(null);
   const [matches, setMatches] = useState<AdminMatches | null>(null);
+  const [recentPage, setRecentPage] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,19 +60,20 @@ function AdminPage() {
     };
   }, []);
 
-  const load = () =>
+  const load = (page = recentPage) =>
     Promise.all([
       adminDisputes()
         .then(setDisputes)
         .catch(() => setDisputes([])),
-      adminMatches()
+      adminMatches({ data: { recentPage: page } })
         .then(setMatches)
-        .catch(() => setMatches({ live: [], recent: [] })),
+        .catch(() => setMatches({ live: [], recent: [], recentPage: 0, recentHasMore: false })),
     ]);
 
   useEffect(() => {
-    if (me?.isAdmin) void load();
-  }, [me]);
+    if (me?.isAdmin) void load(recentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me, recentPage]);
 
   if (me === undefined) return <main className="profile" />;
   if (!me?.isAdmin) {
@@ -177,25 +179,46 @@ function AdminPage() {
         ))
       )}
 
-      <h1>Recent results</h1>
-      <p className="hint">
-        Deleting a completed match reverses the rating changes it recorded — for test games that shouldn't
-        count. Later games aren't recomputed.
-      </p>
-      {matches === null ? null : matches.recent.length === 0 ? (
-        <p className="empty">No completed games yet.</p>
-      ) : (
-        matches.recent.map((m) => (
-          <MatchRow key={m.id} match={m} busy={busy === m.id} onDelete={() => remove(m)} />
-        ))
-      )}
-
       <h1>Map pools</h1>
       <p className="hint">
         Names exactly as the game's lobby shows them. Disabled maps stay here but are neither shown nor
         rolled; changes apply to the next match that forms.
       </p>
       <MapPools />
+
+      <h1>Recent results</h1>
+      <p className="hint">
+        Deleting a completed match reverses the rating changes it recorded — for test games that shouldn't
+        count. Later games aren't recomputed.
+      </p>
+      {matches === null ? null : matches.recent.length === 0 ? (
+        <p className="empty">{recentPage === 0 ? 'No completed games yet.' : 'Nothing older.'}</p>
+      ) : (
+        matches.recent.map((m) => (
+          <MatchRow key={m.id} match={m} busy={busy === m.id} onDelete={() => remove(m)} />
+        ))
+      )}
+      {matches !== null && (recentPage > 0 || matches.recentHasMore) && (
+        <div className="match-actions pager">
+          <button
+            type="button"
+            className="btn"
+            disabled={recentPage === 0}
+            onClick={() => setRecentPage((p) => Math.max(0, p - 1))}
+          >
+            ← Newer
+          </button>
+          <span className="dim">page {recentPage + 1}</span>
+          <button
+            type="button"
+            className="btn"
+            disabled={!matches.recentHasMore}
+            onClick={() => setRecentPage((p) => p + 1)}
+          >
+            Older →
+          </button>
+        </div>
+      )}
     </main>
   );
 }

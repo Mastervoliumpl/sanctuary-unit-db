@@ -66,16 +66,31 @@ async function views(rows: MatchRow[]): Promise<MatchView[]> {
   );
 }
 
-export const adminMatches = createServerFn({ method: 'POST' }).handler(async (): Promise<AdminMatches> => {
-  await requireAdmin();
-  const live = await sql()<MatchRow[]>`
-    select * from matches where status in ('in_progress', 'reported', 'disputed')
-    order by created_at desc`;
-  const recent = await sql()<MatchRow[]>`
-    select * from matches where status = 'completed'
-    order by completed_at desc limit 25`;
-  return { live: await views(live), recent: await views(recent) };
-});
+const RECENT_PAGE = 10;
+
+export const adminMatches = createServerFn({ method: 'POST' })
+  .validator((data: unknown): { recentPage: number } => {
+    const d = data as { recentPage?: unknown } | null;
+    const page = typeof d?.recentPage === 'number' && d.recentPage >= 0 ? Math.floor(d.recentPage) : 0;
+    return { recentPage: page };
+  })
+  .handler(async ({ data }): Promise<AdminMatches> => {
+    await requireAdmin();
+    const live = await sql()<MatchRow[]>`
+      select * from matches where status in ('in_progress', 'reported', 'disputed')
+      order by created_at desc`;
+    // One extra row tells us whether an older page exists.
+    const recent = await sql()<MatchRow[]>`
+      select * from matches where status = 'completed'
+      order by completed_at desc
+      limit ${RECENT_PAGE + 1} offset ${data.recentPage * RECENT_PAGE}`;
+    return {
+      live: await views(live),
+      recent: await views(recent.slice(0, RECENT_PAGE)),
+      recentPage: data.recentPage,
+      recentHasMore: recent.length > RECENT_PAGE,
+    };
+  });
 
 // Removes a match outright. Completed ones have their recorded rating
 // changes reversed first (see admin_delete_match) — for test games that

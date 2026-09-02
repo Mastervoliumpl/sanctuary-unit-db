@@ -1848,6 +1848,9 @@ img.unit-icon[data-muted='true'] {
   border-radius: var(--radius);
   background: var(--bg-raised);
 }
+.pager {
+  margin-top: 10px;
+}
 .maps-table td {
   padding: 4px 8px;
 }

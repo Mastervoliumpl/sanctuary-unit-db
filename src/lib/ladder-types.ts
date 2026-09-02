@@ -115,7 +115,9 @@ export interface LadderMapRow {
 
 export interface AdminMatches {
   live: MatchView[]; // in progress, reported or disputed
-  recent: MatchView[]; // latest completed
+  recent: MatchView[]; // one page of completed matches, newest first
+  recentPage: number; // 0-based
+  recentHasMore: boolean;
 }
 
 export interface DisputeView {
