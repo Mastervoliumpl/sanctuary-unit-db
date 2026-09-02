@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { copyText } from '../lib/clipboard';
 
-export const REPORTER_VERSION = '0.1.0';
+export const REPORTER_VERSION = '0.1.1';
 const DOWNLOAD_URL = `https://github.com/Remmyboy/sanctuary-unit-db/releases/download/ladder-reporter-${REPORTER_VERSION}/LadderReporter-${REPORTER_VERSION}.zip`;
 
 // Where the game reads mods from. The install root moves with the branch and
