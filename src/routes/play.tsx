@@ -30,6 +30,13 @@ export const Route = createFileRoute('/play')({
 function PlayPage() {
   const [me, setMe] = useState<Me | null | undefined>(undefined);
   const [status, setStatus] = useState<PlayStatus | null>(null);
+  // When each poll answered, per mode, as "you joined at" — the cards tick
+  // from this locally between polls.
+  const [joinedAt, setJoinedAt] = useState<Record<Mode, number | null>>({
+    '1v1': null,
+    '2v2': null,
+    '3v3': null,
+  });
   const [counts, setCounts] = useState<QueueCounts | null>(null);
   const [busy, setBusy] = useState<Mode | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +55,12 @@ function PlayPage() {
   const apply = (s: PlayStatus) => {
     if (!alive.current) return;
     setStatus(s);
+    const at = Date.now();
+    setJoinedAt({
+      '1v1': s.queues['1v1'].queuedSeconds == null ? null : at - s.queues['1v1'].queuedSeconds * 1000,
+      '2v2': s.queues['2v2'].queuedSeconds == null ? null : at - s.queues['2v2'].queuedSeconds * 1000,
+      '3v3': s.queues['3v3'].queuedSeconds == null ? null : at - s.queues['3v3'].queuedSeconds * 1000,
+    });
     const queued = MODES.some((m) => s.queues[m].inQueue);
     // Only whisk people away when a queue they were in just produced a
     // match; an old open match is shown as a banner instead.
@@ -124,6 +137,7 @@ function PlayPage() {
               key={mode}
               mode={mode}
               status={status?.queues[mode] ?? null}
+              joinedAtMs={joinedAt[mode]}
               waiting={status ? status.queues[mode].waiting : (counts?.[mode] ?? null)}
               signedIn={signedIn}
               blocked={blocked}

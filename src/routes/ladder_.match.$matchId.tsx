@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { loadMe } from '../lib/auth';
+import { useNow } from '../lib/use-now';
 import { matchCancel, matchConfirm, matchDispute, matchGet, matchReport } from '../server/match-fns';
 import type { MatchParticipant, MatchView, Me } from '../lib/ladder-types';
 
@@ -24,16 +25,6 @@ const mmss = (seconds: number) =>
 
 const secondsUntil = (iso: string | null, now: number) =>
   iso ? Math.max(0, Math.floor((Date.parse(iso) - now) / 1000)) : 0;
-
-// A once-a-second clock for the countdowns.
-function useNow(): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-}
 
 const names = (players: MatchParticipant[]) => players.map((p) => p.personaName).join(', ');
 

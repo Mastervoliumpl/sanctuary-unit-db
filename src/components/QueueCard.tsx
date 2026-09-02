@@ -3,6 +3,8 @@
 // signed in or not.
 
 import { playersNeeded, type Mode } from '../lib/ladder-modes';
+import { searchRadius } from '../lib/matchmaking';
+import { useNow } from '../lib/use-now';
 import type { QueueModeStatus } from '../lib/ladder-types';
 
 const elapsed = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -16,6 +18,7 @@ const BLURB: Record<Mode, string> = {
 export function QueueCard({
   mode,
   status,
+  joinedAtMs,
   waiting,
   signedIn,
   blocked,
@@ -25,6 +28,7 @@ export function QueueCard({
 }: {
   mode: Mode;
   status: QueueModeStatus | null; // null when signed out or not loaded yet
+  joinedAtMs: number | null; // local anchor derived from the last poll; see PlayPage
   waiting: number | null; // null until the first count arrives
   signedIn: boolean;
   blocked: boolean; // an open match to deal with first
@@ -35,6 +39,12 @@ export function QueueCard({
   const needed = playersNeeded(mode);
   const inQueue = status?.inQueue ?? false;
 
+  // The server says how long we've waited once per poll; the page anchors a
+  // local start time on each answer and this ticks from it, so the timer
+  // counts every second and re-syncs whenever the poll comes back.
+  const now = useNow();
+  const seconds = joinedAtMs === null ? 0 : Math.max(0, Math.floor((now - joinedAtMs) / 1000));
+
   return (
     <div className="queue-widget queue-card" data-active={inQueue || undefined}>
       <h2>Ranked {mode}</h2>
@@ -44,10 +54,10 @@ export function QueueCard({
       {inQueue && status ? (
         <>
           <p className="queue-pulse">
-            Searching… <strong>{elapsed(status.queuedSeconds ?? 0)}</strong>
+            Searching… <strong>{elapsed(seconds)}</strong>
           </p>
           <p className="dim">
-            Matching within ±{status.searchRadius} rating — the range widens the longer you wait. Keep this
+            Matching within ±{searchRadius(seconds)} rating — the range widens the longer you wait. Keep this
             tab open.
           </p>
           <button type="button" className="btn" disabled={busy} onClick={onLeave}>
