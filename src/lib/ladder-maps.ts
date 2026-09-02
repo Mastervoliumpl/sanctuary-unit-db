@@ -1,11 +1,10 @@
 // The ranked map pools, one per mode — the maps actually offered in the
 // game's multiplayer lobby (names verbatim, including the generated
-// ~TEAM/~FFA ones, so players can find them in the map list). Some support
-// more spawns than the mode uses; that's fine. The matchmaker picks one
-// uniformly at random when it creates a match. Edit these lists to curate.
+// ~TEAM/~FFA ones, so players can find them in the map list).
 //
-// The 2v2 and 3v3 pools are placeholders (the install's own generated team
-// maps) until they're curated properly.
+// The LIVE pools are in the database (ladder_maps, curated from the admin
+// page); this is the seed they started from and the fallback when the
+// database can't be reached (the static e2e build, an empty pool).
 
 import type { Mode } from './ladder-modes';
 

@@ -106,6 +106,13 @@ export interface Profile {
   history: ProfileMatch[]; // oldest first, all modes
 }
 
+export interface LadderMapRow {
+  mode: Mode;
+  name: string;
+  size: number;
+  enabled: boolean;
+}
+
 export interface AdminMatches {
   live: MatchView[]; // in progress, reported or disputed
   recent: MatchView[]; // latest completed

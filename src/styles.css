@@ -1848,6 +1848,36 @@ img.unit-icon[data-muted='true'] {
   border-radius: var(--radius);
   background: var(--bg-raised);
 }
+.maps-table td {
+  padding: 4px 8px;
+}
+.maps-table tr[data-disabled] td:first-child {
+  color: var(--text-dim);
+  text-decoration: line-through;
+}
+.linkish.danger {
+  color: #e58f98;
+}
+.map-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.map-add input {
+  height: 30px;
+  padding: 0 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  font-size: 12.5px;
+}
+.map-add input:first-child {
+  flex: 1;
+}
+.map-add input[type='number'] {
+  width: 84px;
+}
 .dispute-head {
   display: flex;
   justify-content: space-between;

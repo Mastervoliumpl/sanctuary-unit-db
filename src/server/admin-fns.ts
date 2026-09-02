@@ -6,8 +6,47 @@ import { createServerFn } from '@tanstack/react-start';
 import { sql } from './db';
 import { loadParticipants, toParticipant, toView, type MatchRow } from './match-data';
 import { requireAdmin } from './player';
-import type { Mode } from '../lib/ladder-modes';
-import type { AdminMatches, DisputeView, MatchView } from '../lib/ladder-types';
+import { isMode, type Mode } from '../lib/ladder-modes';
+import type { AdminMatches, DisputeView, LadderMapRow, MatchView } from '../lib/ladder-types';
+
+// ---- map pools -------------------------------------------------------------
+
+export const adminMapPools = createServerFn({ method: 'POST' }).handler(async (): Promise<LadderMapRow[]> => {
+  await requireAdmin();
+  return sql()<LadderMapRow[]>`select mode, name, size, enabled from ladder_maps order by mode, name`;
+});
+
+const mapInput = (data: unknown): { mode: Mode; name: string } => {
+  const d = data as { mode?: unknown; name?: unknown } | null;
+  if (!isMode(d?.mode)) throw new Error('mode required');
+  const name = typeof d.name === 'string' ? d.name.trim() : '';
+  if (name.length < 1 || name.length > 80) throw new Error('name required');
+  return { mode: d.mode, name };
+};
+
+// Add or update a map in a mode's pool (name is the key, exactly as the
+// game's lobby shows it).
+export const adminMapSave = createServerFn({ method: 'POST' })
+  .validator((data: unknown): LadderMapRow => {
+    const { mode, name } = mapInput(data);
+    const d = data as { size?: unknown; enabled?: unknown };
+    const size = typeof d.size === 'number' && Number.isFinite(d.size) ? Math.round(d.size) : 512;
+    return { mode, name, size, enabled: d.enabled !== false };
+  })
+  .handler(async ({ data }): Promise<void> => {
+    await requireAdmin();
+    await sql()`
+      insert into ladder_maps (mode, name, size, enabled)
+      values (${data.mode}, ${data.name}, ${data.size}, ${data.enabled})
+      on conflict (mode, name) do update set size = excluded.size, enabled = excluded.enabled`;
+  });
+
+export const adminMapDelete = createServerFn({ method: 'POST' })
+  .validator(mapInput)
+  .handler(async ({ data }): Promise<void> => {
+    await requireAdmin();
+    await sql()`delete from ladder_maps where mode = ${data.mode} and name = ${data.name}`;
+  });
 
 const matchIdInput = (data: unknown): { matchId: string } => {
   const d = data as { matchId?: unknown } | null;

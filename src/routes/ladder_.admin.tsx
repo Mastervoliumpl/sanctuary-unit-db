@@ -6,8 +6,24 @@
 import { useEffect, useState } from 'react';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { loadMe } from '../lib/auth';
-import { adminDelete, adminDisputes, adminMatches, adminResolve } from '../server/admin-fns';
-import type { AdminMatches, DisputeView, MatchParticipant, MatchView, Me } from '../lib/ladder-types';
+import { MODES, type Mode } from '../lib/ladder-modes';
+import {
+  adminDelete,
+  adminDisputes,
+  adminMapDelete,
+  adminMapPools,
+  adminMapSave,
+  adminMatches,
+  adminResolve,
+} from '../server/admin-fns';
+import type {
+  AdminMatches,
+  DisputeView,
+  LadderMapRow,
+  MatchParticipant,
+  MatchView,
+  Me,
+} from '../lib/ladder-types';
 
 export const Route = createFileRoute('/ladder_/admin')({
   ssr: false,
@@ -173,7 +189,125 @@ function AdminPage() {
           <MatchRow key={m.id} match={m} busy={busy === m.id} onDelete={() => remove(m)} />
         ))
       )}
+
+      <h1>Map pools</h1>
+      <p className="hint">
+        Names exactly as the game's lobby shows them. Disabled maps stay here but are neither shown nor
+        rolled; changes apply to the next match that forms.
+      </p>
+      <MapPools />
     </main>
+  );
+}
+
+function MapPools() {
+  const [rows, setRows] = useState<LadderMapRow[] | null>(null);
+  const [draft, setDraft] = useState<Record<Mode, { name: string; size: string }>>({
+    '1v1': { name: '', size: '512' },
+    '2v2': { name: '', size: '512' },
+    '3v3': { name: '', size: '512' },
+  });
+  const [busy, setBusy] = useState(false);
+
+  const load = () =>
+    adminMapPools()
+      .then(setRows)
+      .catch(() => setRows([]));
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await fn();
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (rows === null) return null;
+
+  return (
+    <div className="map-pools">
+      {MODES.map((mode) => (
+        <div className="dispute" key={mode}>
+          <div className="dispute-head">
+            <strong>{mode}</strong>
+            <span className="dim">{rows.filter((r) => r.mode === mode && r.enabled).length} in rotation</span>
+          </div>
+          <table className="lb-table maps-table">
+            <tbody>
+              {rows
+                .filter((r) => r.mode === mode)
+                .map((r) => (
+                  <tr key={r.name} data-disabled={!r.enabled || undefined}>
+                    <td>{r.name}</td>
+                    <td className="dim">{r.size}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="linkish"
+                        disabled={busy}
+                        onClick={() => run(() => adminMapSave({ data: { ...r, enabled: !r.enabled } }))}
+                      >
+                        {r.enabled ? 'Disable' : 'Enable'}
+                      </button>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="linkish danger"
+                        disabled={busy}
+                        onClick={() => {
+                          if (window.confirm(`Remove ${r.name} from the ${mode} pool?`)) {
+                            void run(() => adminMapDelete({ data: { mode, name: r.name } }));
+                          }
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+          <form
+            className="map-add"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const d = draft[mode];
+              if (!d.name.trim()) return;
+              void run(async () => {
+                await adminMapSave({
+                  data: { mode, name: d.name, size: Number(d.size) || 512, enabled: true },
+                });
+                setDraft({ ...draft, [mode]: { name: '', size: '512' } });
+              });
+            }}
+          >
+            <input
+              placeholder="Map name as shown in the lobby"
+              value={draft[mode].name}
+              onChange={(e) => setDraft({ ...draft, [mode]: { ...draft[mode], name: e.target.value } })}
+            />
+            <input
+              type="number"
+              min={64}
+              step={64}
+              value={draft[mode].size}
+              title="Map size"
+              onChange={(e) => setDraft({ ...draft, [mode]: { ...draft[mode], size: e.target.value } })}
+            />
+            <button type="submit" className="btn" disabled={busy || !draft[mode].name.trim()}>
+              Add
+            </button>
+          </form>
+        </div>
+      ))}
+    </div>
   );
 }
 

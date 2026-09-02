@@ -5,9 +5,9 @@
 
 import { useEffect, useState } from 'react';
 import { Link, createFileRoute } from '@tanstack/react-router';
-import { LADDER_MAPS } from '../lib/ladder-maps';
-import { MODES, isLeaderboardMode, type LeaderboardMode } from '../lib/ladder-modes';
-import { leaderboard, queueCounts } from '../server/queue-fns';
+import { LADDER_MAPS, type LadderMap } from '../lib/ladder-maps';
+import { MODES, isLeaderboardMode, type LeaderboardMode, type Mode } from '../lib/ladder-modes';
+import { leaderboard, mapPools, queueCounts } from '../server/queue-fns';
 import type { LeaderboardRow, QueueCounts } from '../lib/ladder-types';
 
 interface LadderSearch {
@@ -48,18 +48,23 @@ function LadderPage() {
   const rows = Route.useLoaderData();
   const { mode } = Route.useLoaderDeps();
   const [counts, setCounts] = useState<QueueCounts | null>(null);
+  // The curated pools; the seed list stands in until (or if) they load.
+  const [pools, setPools] = useState<Record<Mode, LadderMap[]>>(LADDER_MAPS);
 
   useEffect(() => {
     let alive = true;
     queueCounts()
       .then((c) => alive && setCounts(c))
       .catch(() => {});
+    mapPools()
+      .then((p) => alive && setPools(p))
+      .catch(() => {});
     return () => {
       alive = false;
     };
   }, []);
 
-  const pool = mode === 'overall' ? null : LADDER_MAPS[mode];
+  const pool = mode === 'overall' ? null : pools[mode];
 
   return (
     <>

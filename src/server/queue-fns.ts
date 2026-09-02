@@ -7,7 +7,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { sql } from './db';
 import { requirePlayer } from './player';
-import { ladderMapNames } from '../lib/ladder-maps';
+import { LADDER_MAPS, type LadderMap } from '../lib/ladder-maps';
 import {
   MODES,
   isLeaderboardMode,
@@ -32,8 +32,25 @@ async function openMatchIdFor(playerId: string): Promise<string | null> {
   return rows[0]?.match_id ?? null;
 }
 
-const runPairingPass = (mode: Mode) =>
-  sql()`select pair_queue(${mode}, ${sql().array(ladderMapNames(mode))}::text[])`;
+// The live pool for a mode, curated on the admin page. An emptied pool
+// falls back to the seed list rather than leaving a mode unplayable.
+async function poolFor(mode: Mode): Promise<LadderMap[]> {
+  const rows = await sql()<{ name: string; size: number }[]>`
+    select name, size from ladder_maps where mode = ${mode} and enabled order by name`;
+  return rows.length > 0 ? rows : LADDER_MAPS[mode];
+}
+
+const runPairingPass = async (mode: Mode) => {
+  const names = (await poolFor(mode)).map((m) => m.name);
+  await sql()`select pair_queue(${mode}, ${sql().array(names)}::text[])`;
+};
+
+// The enabled pools, for the standings sidebar.
+export const mapPools = createServerFn().handler(async (): Promise<Record<Mode, LadderMap[]>> => {
+  const pools = {} as Record<Mode, LadderMap[]>;
+  for (const mode of MODES) pools[mode] = await poolFor(mode);
+  return pools;
+});
 
 const sweepDueMatches = () => sql()`select finalize_due_matches()`;
 
