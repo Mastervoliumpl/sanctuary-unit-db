@@ -1572,6 +1572,21 @@ img.unit-icon[data-muted='true'] {
   align-items: center;
   gap: 10px;
 }
+/* Shown while a match is open — the way back if you clicked away. */
+.match-link {
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.match-link:hover {
+  background: color-mix(in srgb, var(--accent) 32%, transparent);
+}
 .auth-me {
   display: flex;
   align-items: center;
@@ -1666,13 +1681,6 @@ img.unit-icon[data-muted='true'] {
   margin: 0 0 8px;
   font-size: 15px;
   font-weight: 650;
-}
-.match-ready {
-  padding: 10px 14px;
-  margin-bottom: 14px;
-  border-left: 3px solid var(--accent);
-  background: var(--bg-raised);
-  border-radius: 0 var(--radius) var(--radius) 0;
 }
 .play-reporter {
   margin-top: 14px;

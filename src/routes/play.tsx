@@ -6,7 +6,7 @@
 // build).
 
 import { useEffect, useRef, useState } from 'react';
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { QueueCard } from '../components/QueueCard';
 import { ReporterCard } from '../components/ReporterCard';
 import { loadMe } from '../lib/auth';
@@ -42,7 +42,6 @@ function PlayPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const alive = useRef(true);
-  const wasQueued = useRef(false);
 
   useEffect(() => {
     alive.current = true;
@@ -61,13 +60,13 @@ function PlayPage() {
       '2v2': s.queues['2v2'].queuedSeconds == null ? null : at - s.queues['2v2'].queuedSeconds * 1000,
       '3v3': s.queues['3v3'].queuedSeconds == null ? null : at - s.queues['3v3'].queuedSeconds * 1000,
     });
-    const queued = MODES.some((m) => s.queues[m].inQueue);
-    // Only whisk people away when a queue they were in just produced a
-    // match; an old open match is shown as a banner instead.
-    if (s.matchId && wasQueued.current) {
-      navigate({ to: '/ladder/match/$matchId', params: { matchId: s.matchId } });
+    // An open match is the only thing that matters: go straight to it,
+    // whether it just formed (even on the join click itself, when someone
+    // was already waiting) or it's one from earlier. You can't queue with
+    // one open anyway, and the match room links back here once it's done.
+    if (s.matchId) {
+      navigate({ to: '/ladder/match/$matchId', params: { matchId: s.matchId }, replace: true });
     }
-    wasQueued.current = queued;
   };
 
   useEffect(() => {
@@ -119,15 +118,6 @@ function PlayPage() {
             <a className="steam-signin big" href="/api/auth/steam">
               Sign in through Steam
             </a>
-          </div>
-        )}
-
-        {status?.matchId && (
-          <div className="match-ready">
-            <strong>You have a match waiting.</strong>{' '}
-            <Link to="/ladder/match/$matchId" params={{ matchId: status.matchId }}>
-              Open the match room
-            </Link>
           </div>
         )}
 

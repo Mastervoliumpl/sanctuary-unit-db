@@ -42,6 +42,11 @@ export function AuthChip() {
 
   return (
     <div className="auth-chip">
+      {me.openMatchId && (
+        <Link to="/ladder/match/$matchId" params={{ matchId: me.openMatchId }} className="match-link">
+          Your match
+        </Link>
+      )}
       <Link to="/ladder/player/$steamId" params={{ steamId: me.steamId }} className="auth-me">
         {me.avatarUrl && <img src={me.avatarUrl} alt="" width={22} height={22} />}
         <span>{me.personaName}</span>

@@ -25,12 +25,18 @@ export async function loadSessionPlayer(): Promise<Me | null> {
     from players where id = ${session.playerId}`;
   const player = rows[0];
   if (!player || player.banned_at) return null;
+  const [open] = await sql()<{ match_id: string }[]>`
+    select mp.match_id
+    from match_participants mp join matches m on m.id = mp.match_id
+    where mp.player_id = ${player.id} and m.status in ('in_progress', 'reported', 'disputed')
+    limit 1`;
   return {
     playerId: player.id,
     steamId: player.steam_id,
     personaName: player.persona_name,
     avatarUrl: player.avatar_url,
     isAdmin: player.is_admin,
+    openMatchId: open?.match_id ?? null,
   };
 }
 

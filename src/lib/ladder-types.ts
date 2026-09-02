@@ -9,6 +9,7 @@ export interface Me {
   personaName: string;
   avatarUrl: string | null;
   isAdmin: boolean;
+  openMatchId: string | null; // a match in progress/reported/disputed — the header links to it
 }
 
 export interface QueueModeStatus {
