@@ -17,7 +17,14 @@ import {
   type Mode,
 } from '../lib/ladder-modes';
 import { searchRadius } from '../lib/matchmaking';
-import type { LeaderboardRow, PlayStatus, QueueCounts, QueueModeStatus } from '../lib/ladder-types';
+import { FACTIONS, isFaction, isLaunchable, type Faction, type ModState } from '../lib/mm';
+import type {
+  LeaderboardRow,
+  ModPresence,
+  PlayStatus,
+  QueueCounts,
+  QueueModeStatus,
+} from '../lib/ladder-types';
 
 // A player's open match, if any — the one they should be looking at instead
 // of queueing.
@@ -52,7 +59,11 @@ export const mapPools = createServerFn().handler(async (): Promise<Record<Mode, 
   return pools;
 });
 
-const sweepDueMatches = () => sql()`select finalize_due_matches()`;
+// Overdue auto-confirms, plus auto-launch countdowns and timeouts.
+const sweepDueMatches = async () => {
+  await sql()`select finalize_due_matches()`;
+  await sql()`select sweep_mm_matches()`;
+};
 
 // Live entries only: stale ones are swept by pairing passes, but the count is
 // read by visitors who never trigger one. Plus how many games are on right
@@ -69,11 +80,26 @@ async function countQueues(): Promise<QueueCounts> {
   return { waiting, liveGames: live?.n ?? 0 };
 }
 
+// The mod's last heartbeat, if it's recent enough to mean anything (a minute:
+// long enough to show "mod seen, but in a lobby", not so long it's stale).
+async function presenceFor(playerId: string): Promise<ModPresence | null> {
+  const [row] = await sql()<{ state: ModState; seen_at: Date }[]>`
+    select state, seen_at from mod_presence
+    where player_id = ${playerId} and seen_at > now() - interval '60 seconds'`;
+  if (!row) return null;
+  return {
+    state: row.state,
+    seenAt: row.seen_at.toISOString(),
+    launchable: isLaunchable(row.seen_at.getTime(), row.state, Date.now()),
+  };
+}
+
 async function playStatus(playerId: string): Promise<PlayStatus> {
   const matchId = await openMatchIdFor(playerId);
-  const mine = await sql()<{ mode: Mode; joined_at: Date }[]>`
-    select mode, joined_at from queue_entries where player_id = ${playerId}`;
+  const mine = await sql()<{ mode: Mode; joined_at: Date; factions: Faction[] }[]>`
+    select mode, joined_at, factions from queue_entries where player_id = ${playerId}`;
   const counts = await countQueues();
+  const mod = await presenceFor(playerId);
 
   const queues = {} as Record<Mode, QueueModeStatus>;
   for (const mode of MODES) {
@@ -89,7 +115,13 @@ async function playStatus(playerId: string): Promise<PlayStatus> {
       needed: playersNeeded(mode),
     };
   }
-  return { matchId, queues, liveGames: counts.liveGames };
+  return {
+    matchId,
+    queues,
+    liveGames: counts.liveGames,
+    mod,
+    factions: mine.find((m) => m.mode === '1v1')?.factions ?? [...FACTIONS],
+  };
 }
 
 const modeInput = (data: unknown): { mode: Mode } => {
@@ -98,8 +130,18 @@ const modeInput = (data: unknown): { mode: Mode } => {
   return { mode: d.mode };
 };
 
+// What the player is willing to be launched as. Nothing valid means
+// everything — a faction filter is never a reason not to queue.
+const factionsInput = (v: unknown): Faction[] => {
+  const picked = Array.isArray(v) ? [...new Set(v.filter(isFaction))] : [];
+  return picked.length > 0 ? picked : [...FACTIONS];
+};
+
 export const queueJoin = createServerFn({ method: 'POST' })
-  .validator(modeInput)
+  .validator((data: unknown): { mode: Mode; factions: Faction[] } => ({
+    ...modeInput(data),
+    factions: factionsInput((data as { factions?: unknown }).factions),
+  }))
   .handler(async ({ data }): Promise<PlayStatus> => {
     const me = await requirePlayer();
     if (await openMatchIdFor(me.playerId)) return playStatus(me.playerId);
@@ -107,10 +149,11 @@ export const queueJoin = createServerFn({ method: 'POST' })
     // The rating snapshot the matchmaker balances on is this mode's.
     await sql()`select ensure_rating(${me.playerId}, ${data.mode})`;
     await sql()`
-      insert into queue_entries (player_id, mode, rating)
-      select ${me.playerId}, ${data.mode}, rating
+      insert into queue_entries (player_id, mode, rating, factions)
+      select ${me.playerId}, ${data.mode}, rating, ${sql().array(data.factions)}::text[]
       from player_ratings where player_id = ${me.playerId} and mode = ${data.mode}
-      on conflict (player_id, mode) do update set rating = excluded.rating, heartbeat_at = now()`;
+      on conflict (player_id, mode) do update set
+        rating = excluded.rating, factions = excluded.factions, heartbeat_at = now()`;
 
     await runPairingPass(data.mode);
     return playStatus(me.playerId);

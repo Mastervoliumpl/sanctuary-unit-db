@@ -2151,3 +2151,118 @@ img.unit-icon[data-muted='true'] {
     display: none;
   }
 }
+
+/* Auto-launch: faction picker and mod state on the 1v1 queue card. */
+.faction-pick {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+.faction-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-dim);
+}
+.faction-opt[data-on] {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.faction-opt input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.launch-state {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+.launch-state[data-ready] {
+  color: var(--text);
+}
+.launch-state[data-ready] strong {
+  color: var(--accent);
+}
+
+/* Match room: the countdown and the launch progress. */
+.countdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-raised));
+}
+.countdown .num {
+  font-size: 34px;
+  font-weight: 700;
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.countdown p {
+  margin: 0;
+}
+.launch-steps {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  gap: 14px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+.launch-steps li[data-done] {
+  color: var(--text);
+}
+.launch-steps li[data-done]::before {
+  content: '✓ ';
+  color: var(--accent);
+}
+.assign {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+.mm-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  vertical-align: middle;
+}
+.mm-badge[data-auto] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.map-path {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.map-path input {
+  width: 260px;
+  font-size: 11.5px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text);
+}

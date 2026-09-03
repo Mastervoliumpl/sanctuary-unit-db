@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { loadMe } from '../lib/auth';
 import { stopMatchAlert, useMatchAlert } from '../lib/match-alert';
+import { launchProgress } from '../lib/mm';
 import { useNow } from '../lib/use-now';
 import { matchCancel, matchConfirm, matchDispute, matchGet, matchReport } from '../server/match-fns';
 import type { MatchParticipant, MatchView, Me } from '../lib/ladder-types';
@@ -109,6 +110,12 @@ function MatchRoom() {
   const iAmHost = mine !== undefined && match.hostPlayerId === mine.playerId;
   const teamGame = match.teamSize > 1;
   const we = teamGame ? 'We' : 'I';
+  // Auto matches: has the game actually started on both sides?
+  const joiner = match.participants.find((p) => p.playerId !== match.hostPlayerId);
+  const launched =
+    match.mmStatus === 'launch' &&
+    joiner !== undefined &&
+    launchProgress(match.mmEvents, match.hostPlayerId, joiner.playerId).started;
 
   return (
     <main className="match-room">
@@ -126,7 +133,14 @@ function MatchRoom() {
       </Link>
 
       <div className="match-map">
-        <div className="rk">Ranked {match.mode} · map</div>
+        <div className="rk">
+          Ranked {match.mode} · map
+          {match.mode === '1v1' && (
+            <span className="mm-badge" data-auto={match.mmMode === 'auto' || undefined}>
+              {match.mmMode === 'auto' ? 'auto-launch' : 'manual hosting'}
+            </span>
+          )}
+        </div>
         <h1>{match.mapName}</h1>
       </div>
 
@@ -136,9 +150,44 @@ function MatchRoom() {
         <TeamColumn label="Team 2" players={team2} me={mine} hostId={match.hostPlayerId} />
       </div>
 
-      {match.status === 'in_progress' && (
+      {match.status === 'in_progress' && match.mmStatus === 'countdown' && (
+        <div className="countdown">
+          <div className="num">{secondsUntil(match.countdownEndsAt, now)}</div>
+          <p>
+            <strong>Auto-launch.</strong> Both games are ready — in a moment{' '}
+            {iAmHost ? 'your game creates the lobby' : `${host?.personaName}'s game creates the lobby`} and{' '}
+            {iAmHost ? `${names(match.participants.filter((p) => p !== mine))} joins` : 'yours joins'}. Leave
+            the game in the main menu.
+          </p>
+          {mine && (
+            <button
+              type="button"
+              className="btn"
+              disabled={busy}
+              onClick={() => act(() => matchCancel({ data: { matchId } }))}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
+
+      {match.status === 'in_progress' && match.mmStatus === 'launch' && (
+        <LaunchPanel match={match} host={host} />
+      )}
+
+      {match.status === 'in_progress' && match.mmStatus === 'manual' && match.mmReason && (
+        <p className="match-note">
+          Auto-launch is off for this match: <strong>{match.mmReason}</strong>.
+        </p>
+      )}
+
+      {match.status === 'in_progress' && match.mmStatus !== 'countdown' && (
         <>
-          <div className="match-instructions">
+          {/* A launching match needs no hosting instructions; once it has
+              started, the report controls come back in case the mods' own
+              report never arrives. */}
+          <div className="match-instructions" hidden={match.mmStatus === 'launch'}>
             {!mine ? (
               <p>Match in progress.</p>
             ) : teamGame ? (
@@ -161,7 +210,7 @@ function MatchRoom() {
               </p>
             )}
           </div>
-          {mine && myTeam !== null && (
+          {mine && myTeam !== null && (match.mmStatus !== 'launch' || launched) && (
             <div className="match-actions column">
               <div>
                 <span className="rk">When the game ends, report the result:</span>
@@ -211,7 +260,17 @@ function MatchRoom() {
 
       {match.status === 'cancelled' && (
         <p className="match-note">
-          Match cancelled — no rating change. <Link to="/play">Queue again?</Link>
+          {match.mmStatus === 'failed' ? (
+            <>
+              Auto-launch failed: <strong>{match.mmReason ?? 'the game did not start'}</strong>. No rating
+              change — host a game manually next time, or{' '}
+            </>
+          ) : match.mmMode === 'auto' ? (
+            <>Auto-launch cancelled — no rating change. </>
+          ) : (
+            <>Match cancelled — no rating change. </>
+          )}
+          <Link to="/play">Queue again?</Link>
         </p>
       )}
 
@@ -223,6 +282,33 @@ function MatchRoom() {
 
       {error && <p className="queue-error">{error}</p>}
     </main>
+  );
+}
+
+// After the countdown: what the two mods have reported so far. The site
+// times each step out (see sweep_mm_matches) and the match comes back as
+// failed with the reason if one is missed.
+function LaunchPanel({ match, host }: { match: MatchView; host: MatchParticipant | undefined }) {
+  const joiner = match.participants.find((p) => p.playerId !== match.hostPlayerId);
+  const progress = joiner
+    ? launchProgress(match.mmEvents, match.hostPlayerId, joiner.playerId)
+    : { lobbyCreated: false, joined: false, started: false };
+  return (
+    <div className="match-instructions">
+      <p>
+        <strong>{progress.started ? 'Game on.' : 'Launching…'}</strong>{' '}
+        {progress.started
+          ? 'Both games are in. Results report themselves when it ends.'
+          : 'Leave both games in the main menu — the mods are creating and joining the lobby.'}
+      </p>
+      <ul className="launch-steps">
+        <li data-done={progress.lobbyCreated || match.sessionId !== null || undefined}>
+          {host?.personaName ?? 'Host'} creates the lobby
+        </li>
+        <li data-done={progress.joined || undefined}>{joiner?.personaName ?? 'Opponent'} joins</li>
+        <li data-done={progress.started || undefined}>Game starts</li>
+      </ul>
+    </div>
   );
 }
 
@@ -248,6 +334,12 @@ function TeamColumn({
               {p.personaName}
             </Link>
             {p.playerId === hostId && <span className="host-badge">host</span>}
+            {p.faction && (
+              <span className="assign" title="Assigned for the auto-launched game">
+                {p.faction}
+                {p.slot && ` · slot ${p.slot}`}
+              </span>
+            )}
             <div className="dim">
               {/* Settled: the change, then the rating they now hold. Open:
                   the rating they brought in. */}

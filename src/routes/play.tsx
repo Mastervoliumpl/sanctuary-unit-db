@@ -13,10 +13,32 @@ import { ReporterCard } from '../components/ReporterCard';
 import { loadMe } from '../lib/auth';
 import { MODES, type Mode } from '../lib/ladder-modes';
 import { primeAudio, startMatchAlert } from '../lib/match-alert';
+import { FACTIONS, isFaction, type Faction } from '../lib/mm';
 import { queueCounts, queueJoin, queueLeave, queueStatus } from '../server/queue-fns';
 import type { Me, PlayStatus, QueueCounts } from '../lib/ladder-types';
 
 const POLL_MS = 5000;
+
+// Factions you'll accept in an auto-launched 1v1, remembered per browser.
+const FACTIONS_KEY = 'sdb.factions';
+
+function loadFactions(): Faction[] {
+  try {
+    const raw = localStorage.getItem(FACTIONS_KEY);
+    const picked = raw ? (JSON.parse(raw) as unknown[]).filter(isFaction) : [];
+    return picked.length > 0 ? [...new Set(picked)] : [...FACTIONS];
+  } catch {
+    return [...FACTIONS];
+  }
+}
+
+function saveFactions(f: Faction[]): void {
+  try {
+    localStorage.setItem(FACTIONS_KEY, JSON.stringify(f));
+  } catch {
+    // Blocked storage: the choice still applies to this visit.
+  }
+}
 
 export const Route = createFileRoute('/play')({
   ssr: false,
@@ -42,6 +64,7 @@ function PlayPage() {
   const [counts, setCounts] = useState<QueueCounts | null>(null);
   const [busy, setBusy] = useState<Mode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [factions, setFactions] = useState<Faction[]>(loadFactions);
   const navigate = useNavigate();
   const alive = useRef(true);
   const wasQueued = useRef(false); // so a match that forms from OUR queue rings the alert
@@ -144,12 +167,18 @@ function PlayPage() {
               signedIn={signedIn}
               blocked={blocked}
               busy={busy === mode}
+              factions={factions}
+              mod={status?.mod ?? null}
+              onFactions={(f) => {
+                setFactions(f);
+                saveFactions(f);
+              }}
               onJoin={() => {
                 // Inside the click, so the browser lets the ding play later.
                 primeAudio();
                 // The join itself may complete the match (someone waiting).
                 wasQueued.current = true;
-                void act(mode, () => queueJoin({ data: { mode } }));
+                void act(mode, () => queueJoin({ data: { mode, factions } }));
               }}
               onLeave={() => act(mode, () => queueLeave({ data: { mode } }))}
             />

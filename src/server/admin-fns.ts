@@ -13,7 +13,7 @@ import type { AdminMatches, DisputeView, LadderMapRow, MatchView } from '../lib/
 
 export const adminMapPools = createServerFn({ method: 'POST' }).handler(async (): Promise<LadderMapRow[]> => {
   await requireAdmin();
-  return sql()<LadderMapRow[]>`select mode, name, size, enabled from ladder_maps order by mode, name`;
+  return sql()<LadderMapRow[]>`select mode, name, size, enabled, path from ladder_maps order by mode, name`;
 });
 
 const mapInput = (data: unknown): { mode: Mode; name: string } => {
@@ -29,16 +29,20 @@ const mapInput = (data: unknown): { mode: Mode; name: string } => {
 export const adminMapSave = createServerFn({ method: 'POST' })
   .validator((data: unknown): LadderMapRow => {
     const { mode, name } = mapInput(data);
-    const d = data as { size?: unknown; enabled?: unknown };
+    const d = data as { size?: unknown; enabled?: unknown; path?: unknown };
     const size = typeof d.size === 'number' && Number.isFinite(d.size) ? Math.round(d.size) : 512;
-    return { mode, name, size, enabled: d.enabled !== false };
+    // The game's path (Maps/<dir>/<file>.sanmap); empty clears it, which
+    // takes the map out of auto-launch rotation but not out of the pool.
+    const path = typeof d.path === 'string' ? d.path.trim().replace(/\\/g, '/').slice(0, 200) : '';
+    return { mode, name, size, enabled: d.enabled !== false, path: path || null };
   })
   .handler(async ({ data }): Promise<void> => {
     await requireAdmin();
     await sql()`
-      insert into ladder_maps (mode, name, size, enabled)
-      values (${data.mode}, ${data.name}, ${data.size}, ${data.enabled})
-      on conflict (mode, name) do update set size = excluded.size, enabled = excluded.enabled`;
+      insert into ladder_maps (mode, name, size, enabled, path)
+      values (${data.mode}, ${data.name}, ${data.size}, ${data.enabled}, ${data.path})
+      on conflict (mode, name) do update set
+        size = excluded.size, enabled = excluded.enabled, path = excluded.path`;
   });
 
 export const adminMapDelete = createServerFn({ method: 'POST' })

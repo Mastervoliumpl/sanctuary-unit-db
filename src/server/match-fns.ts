@@ -13,6 +13,7 @@ import {
   CANCEL_WINDOW_MINUTES,
   OPEN_STATES,
   loadMatch,
+  loadMmEvents,
   loadParticipants,
   teamOf,
   toView,
@@ -41,7 +42,14 @@ async function loadMatchAs(
 
 const view = async (matchId: string, playerId: string | null): Promise<MatchView> => {
   const { match, participants } = await loadMatchAs(matchId, playerId);
-  return toView(match, participants);
+  const events = match.mm_mode === 'auto' || match.mm_reason ? await loadMmEvents([matchId]) : [];
+  return toView(match, participants, events);
+};
+
+// Overdue auto-confirms, plus the auto-launch countdowns and timeouts.
+const sweep = async () => {
+  await sql()`select finalize_due_matches()`;
+  await sql()`select sweep_mm_matches()`;
 };
 
 const matchIdInput = (data: unknown): { matchId: string } => {
@@ -55,7 +63,7 @@ const matchIdInput = (data: unknown): { matchId: string } => {
 export const matchGet = createServerFn({ method: 'POST' })
   .validator(matchIdInput)
   .handler(async ({ data }): Promise<MatchView> => {
-    await sql()`select finalize_due_matches()`;
+    await sweep();
     const me = await requirePlayer().catch(() => null);
     return view(data.matchId, me?.playerId ?? null);
   });
@@ -76,8 +84,10 @@ export const matchCancel = createServerFn({ method: 'POST' })
     if (withinWindow || otherSideAsked) {
       // The status guard makes concurrent cancel/report races resolve to
       // whichever write lands first; a stale loser just reloads the new state.
+      // An auto match's mm lifecycle ends with it (the mod stops launching).
       await sql()`
-        update matches set status = 'cancelled', cancelled_by = ${me.playerId}
+        update matches set status = 'cancelled', cancelled_by = ${me.playerId},
+          mm_status = case when mm_mode = 'auto' then 'cancelled' else mm_status end
         where id = ${data.matchId} and status = 'in_progress'`;
     } else if (match.cancel_requested_by === null) {
       await sql()`

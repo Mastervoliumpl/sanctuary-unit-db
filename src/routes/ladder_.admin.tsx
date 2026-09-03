@@ -181,8 +181,10 @@ function AdminPage() {
 
       <h1>Map pools</h1>
       <p className="hint">
-        Names exactly as the game's lobby shows them. Disabled maps stay here but are neither shown nor
-        rolled; changes apply to the next match that forms.
+        Names exactly as the game's lobby shows them. A 1v1 map with its game path filled in (
+        <code>Maps/…/….sanmap</code>) can be auto-launched by the mod; shipped maps only — a converted or
+        custom map won't exist on both machines. Disabled maps stay here but are neither shown nor rolled;
+        changes apply to the next match that forms.
       </p>
       <MapPools />
 
@@ -269,6 +271,15 @@ function MapPools() {
                   <tr key={r.name} data-disabled={!r.enabled || undefined}>
                     <td>{r.name}</td>
                     <td className="dim">{r.size}</td>
+                    {mode === '1v1' && (
+                      <td>
+                        <MapPathField
+                          row={r}
+                          busy={busy}
+                          onSave={(path) => run(() => adminMapSave({ data: { ...r, path } }))}
+                        />
+                      </td>
+                    )}
                     <td>
                       <button
                         type="button"
@@ -331,6 +342,43 @@ function MapPools() {
         </div>
       ))}
     </div>
+  );
+}
+
+// The game's path for a 1v1 map, e.g. Maps/The_Forge/The_Forge.sanmap. Set
+// it and the mod can auto-launch the map; blank keeps the map manual-only.
+function MapPathField({
+  row,
+  busy,
+  onSave,
+}: {
+  row: LadderMapRow;
+  busy: boolean;
+  onSave: (path: string) => void;
+}) {
+  const [value, setValue] = useState(row.path ?? '');
+  const dirty = value.trim() !== (row.path ?? '');
+  return (
+    <form
+      className="map-path"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (dirty) onSave(value);
+      }}
+    >
+      <input
+        value={value}
+        placeholder="Maps/…/….sanmap (auto-launch)"
+        title="The game's map path, for auto-launched matches"
+        disabled={busy}
+        onChange={(e) => setValue(e.target.value)}
+      />
+      {dirty && (
+        <button type="submit" className="linkish" disabled={busy}>
+          Save
+        </button>
+      )}
+    </form>
   );
 }
 
