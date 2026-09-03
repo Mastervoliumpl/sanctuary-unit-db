@@ -40,7 +40,9 @@ export const adminMapSave = createServerFn({ method: 'POST' })
     await requireAdmin();
     await sql()`
       insert into ladder_maps (mode, name, size, enabled, path)
-      values (${data.mode}, ${data.name}, ${data.size}, ${data.enabled}, ${data.path})
+      values (${data.mode}, ${data.name}, ${data.size}, ${data.enabled},
+              coalesce(${data.path},
+                       (select path from shipped_maps where lower(name) = lower(${data.name}))))
       on conflict (mode, name) do update set
         size = excluded.size, enabled = excluded.enabled, path = excluded.path`;
   });

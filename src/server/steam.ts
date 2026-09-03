@@ -58,9 +58,11 @@ export async function verifyWebApiTicket(ticketHex: string, identity: string): P
   if (!key || !/^[0-9a-fA-F]{40,5200}$/.test(ticketHex)) return null;
   for (const appId of APP_IDS) {
     try {
+      // Bounded: a slow Steam must fail the call, not hang the mod's poll.
       const res = await fetch(
         'https://api.steampowered.com/ISteamUserAuth/AuthenticateUserTicket/v1/' +
           `?key=${key}&appid=${appId}&ticket=${ticketHex}&identity=${encodeURIComponent(identity)}`,
+        { signal: AbortSignal.timeout(8000) },
       );
       if (!res.ok) continue;
       const body: { response?: { params?: { result?: string; steamid?: string } } } = await res.json();
@@ -89,6 +91,7 @@ export async function fetchPersona(steamId: string): Promise<SteamPersona> {
   try {
     const res = await fetch(
       `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${key}&steamids=${steamId}`,
+      { signal: AbortSignal.timeout(5000) },
     );
     if (!res.ok) return fallback;
     const body: { response?: { players?: { personaname?: string; avatarfull?: string }[] } } =

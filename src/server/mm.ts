@@ -2,6 +2,9 @@
 // bearer sessions minted from Steam tickets, the presence table the
 // heartbeat writes, the lazy sweep, and the match object the mod polls for.
 // Server only — touches the database and node:crypto.
+//
+// The heartbeat runs every 5 s per player, so this module is written for
+// round trips: the match object is one query, the sweep is one statement.
 
 import { createHash, randomBytes } from 'node:crypto';
 import { sql } from './db';
@@ -46,8 +49,8 @@ export async function mintSession(
 
   const token = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + SESSION_TTL_H * 3_600_000);
-  await sql()`delete from mm_sessions where expires_at < now()`;
   await sql()`
+    with tidy as (delete from mm_sessions where expires_at < now())
     insert into mm_sessions (token_hash, player_id, expires_at)
     values (${hash(token)}, ${player.id}, ${expiresAt})`;
   return { token, player: { playerId: player.id, steamId, personaName: player.persona_name }, expiresAt };
@@ -75,11 +78,10 @@ export async function readJson(request: Request): Promise<Record<string, unknown
   }
 }
 
-// Everything time-driven, in one call: overdue auto-confirms and the
+// Everything time-driven, in one round trip: overdue auto-confirms and the
 // auto-launch countdowns/timeouts. Called from every poll-shaped entry point.
 export async function sweepAll(): Promise<void> {
-  await sql()`select finalize_due_matches()`;
-  await sql()`select sweep_mm_matches()`;
+  await sql()`select sweep_all()`;
 }
 
 // ---- the match object the mod sees -----------------------------------------
@@ -101,6 +103,14 @@ export interface ModMatch {
   reason: string | null;
 }
 
+interface ModPlayerRow {
+  player_id: string;
+  steam_id: string;
+  persona_name: string;
+  faction: Faction | null;
+  slot: number | null;
+}
+
 interface ModMatchRow {
   id: string;
   status: 'in_progress' | 'reported' | 'completed' | 'disputed' | 'cancelled';
@@ -113,43 +123,45 @@ interface ModMatchRow {
   countdown_ends_at: Date | null;
   cancelled_by: string | null;
   mm_reason: string | null;
+  players: ModPlayerRow[]; // json_agg
 }
 
-interface ModParticipantRow {
-  player_id: string;
-  steam_id: string;
-  persona_name: string;
-  faction: Faction | null;
-  slot: number | null;
-}
+// The match row with its players folded in, so one query answers a poll.
+const MATCH_SELECT = `
+  select m.id, m.status, m.mm_mode, m.mm_status, m.map_name, m.map_path, m.host_player_id,
+         m.session_id, m.countdown_ends_at, m.cancelled_by, m.mm_reason,
+         (select json_agg(json_build_object(
+            'player_id', mp.player_id, 'steam_id', p.steam_id,
+            'persona_name', coalesce(p.display_name, p.persona_name),
+            'faction', mp.faction, 'slot', mp.slot))
+          from match_participants mp join players p on p.id = mp.player_id
+          where mp.match_id = m.id) as players
+  from matches m`;
 
-export async function loadModMatch(matchId: string): Promise<ModMatch | null> {
-  const [m] = await sql()<ModMatchRow[]>`select * from matches where id = ${matchId}`;
-  if (!m) return null;
-  return toModMatch(m);
+export async function loadModMatch(matchId: string, mySteamId: string): Promise<ModMatch | null> {
+  const [m] = await sql().unsafe<ModMatchRow[]>(`${MATCH_SELECT} where m.id = $1`, [matchId]);
+  return m ? toModMatch(m, mySteamId) : null;
 }
 
 // The 1v1 match the mod should be acting on: an open one, or an auto one
 // that ended recently (so a cancel or failure reaches a mod mid-launch — an
 // open-only lookup would just go quiet on it).
-export async function currentModMatch(playerId: string): Promise<ModMatch | null> {
-  const [m] = await sql()<ModMatchRow[]>`
-    select m.* from matches m
-    join match_participants mp on mp.match_id = m.id and mp.player_id = ${playerId}
-    where m.mode = '1v1'
-      and (m.status in ('in_progress', 'reported', 'disputed')
-           or (m.mm_mode = 'auto' and m.created_at > now() - interval '10 minutes'))
-    order by (m.status in ('in_progress', 'reported', 'disputed')) desc, m.created_at desc
-    limit 1`;
-  return m ? toModMatch(m) : null;
+export async function currentModMatch(playerId: string, mySteamId: string): Promise<ModMatch | null> {
+  const [m] = await sql().unsafe<ModMatchRow[]>(
+    `${MATCH_SELECT}
+     join match_participants mine on mine.match_id = m.id and mine.player_id = $1
+     where m.mode = '1v1'
+       and (m.status in ('in_progress', 'reported', 'disputed')
+            or (m.mm_mode = 'auto' and m.created_at > now() - interval '10 minutes'))
+     order by (m.status in ('in_progress', 'reported', 'disputed')) desc, m.created_at desc
+     limit 1`,
+    [playerId],
+  );
+  return m ? toModMatch(m, mySteamId) : null;
 }
 
-async function toModMatch(m: ModMatchRow): Promise<ModMatch | null> {
-  const players = await sql()<ModParticipantRow[]>`
-    select mp.player_id, p.steam_id, coalesce(p.display_name, p.persona_name) as persona_name,
-           mp.faction, mp.slot
-    from match_participants mp join players p on p.id = mp.player_id
-    where mp.match_id = ${m.id}`;
+function toModMatch(m: ModMatchRow, mySteamId: string): ModMatch | null {
+  const players = m.players ?? [];
   const host = players.find((p) => p.player_id === m.host_player_id);
   const joiner = players.find((p) => p.player_id !== m.host_player_id);
   if (!host || !joiner || players.length !== 2) return null;
@@ -161,6 +173,7 @@ async function toModMatch(m: ModMatchRow): Promise<ModMatch | null> {
     if (p.slot) slots[p.steam_id] = p.slot;
   }
   const cancelledBy = players.find((p) => p.player_id === m.cancelled_by);
+  const opponent = players.find((p) => p.steam_id !== mySteamId) ?? joiner;
 
   return {
     id: m.id,
@@ -168,24 +181,16 @@ async function toModMatch(m: ModMatchRow): Promise<ModMatch | null> {
     status: deriveMmStatus({ status: m.status, mmMode: m.mm_mode, mmStatus: m.mm_status }),
     host: host.steam_id,
     joiner: joiner.steam_id,
-    opponent: { steamId: '', name: '' }, // filled per caller below
+    opponent: { steamId: opponent.steam_id, name: opponent.persona_name },
     map: m.map_path,
     mapName: m.map_name,
     factions,
     slots,
     sessionId: m.session_id,
-    countdownEndsAt: m.countdown_ends_at?.toISOString() ?? null,
+    countdownEndsAt: m.countdown_ends_at ? new Date(m.countdown_ends_at).toISOString() : null,
     cancelledBy: cancelledBy?.steam_id ?? null,
     reason: m.mm_reason,
   };
-}
-
-// `opponent` depends on who's asking.
-export async function withOpponent(match: ModMatch, mySteamId: string): Promise<ModMatch> {
-  const otherSteamId = match.host === mySteamId ? match.joiner : match.host;
-  const [row] = await sql()<{ persona_name: string }[]>`
-    select coalesce(display_name, persona_name) as persona_name from players where steam_id = ${otherSteamId}`;
-  return { ...match, opponent: { steamId: otherSteamId, name: row?.persona_name ?? '' } };
 }
 
 export async function isParticipant(matchId: string, playerId: string): Promise<boolean> {
@@ -195,3 +200,9 @@ export async function isParticipant(matchId: string, playerId: string): Promise<
 }
 
 export const isUuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f-]{36}$/.test(v);
+
+// Vercel logs: a poll that took long enough to matter to a 5 s poller.
+export function logSlow(what: string, startedAt: number, extra = ''): void {
+  const ms = Date.now() - startedAt;
+  if (ms > 1500) console.warn(`[mm] slow ${what}: ${ms} ms ${extra}`.trim());
+}

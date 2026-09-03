@@ -6,16 +6,7 @@
 
 import { createFileRoute } from '@tanstack/react-router';
 import { sql } from '../server/db';
-import {
-  authenticate,
-  bad,
-  isUuid,
-  json,
-  loadModMatch,
-  readJson,
-  sweepAll,
-  withOpponent,
-} from '../server/mm';
+import { authenticate, bad, isUuid, json, loadModMatch, readJson, sweepAll } from '../server/mm';
 
 export const Route = createFileRoute('/api/mm/match/$id/session')({
   server: {
@@ -33,7 +24,7 @@ export const Route = createFileRoute('/api/mm/match/$id/session')({
         }
 
         await sweepAll();
-        const match = await loadModMatch(params.id);
+        const match = await loadModMatch(params.id, me.steamId);
         if (!match) return bad(404, 'No such match.');
         if (match.host !== me.steamId) return bad(403, 'Only the host posts the session id.');
         if (match.status !== 'launch') return bad(409, `The match is ${match.status}, not launching.`);
@@ -42,8 +33,7 @@ export const Route = createFileRoute('/api/mm/match/$id/session')({
           update matches set session_id = ${sessionId}, session_at = now()
           where id = ${params.id} and mm_status = 'launch' and session_id is null`;
 
-        const updated = await loadModMatch(params.id);
-        return json(200, updated ? await withOpponent(updated, me.steamId) : null);
+        return json(200, await loadModMatch(params.id, me.steamId));
       },
     },
   },

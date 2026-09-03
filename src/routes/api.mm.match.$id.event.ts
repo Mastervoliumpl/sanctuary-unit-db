@@ -17,7 +17,6 @@ import {
   loadModMatch,
   readJson,
   sweepAll,
-  withOpponent,
 } from '../server/mm';
 import { isMmEventType } from '../lib/mm';
 
@@ -56,8 +55,7 @@ export const Route = createFileRoute('/api/mm/match/$id/event')({
         }
 
         await sweepAll();
-        const match = await loadModMatch(params.id);
-        return json(200, match ? await withOpponent(match, me.steamId) : null);
+        return json(200, await loadModMatch(params.id, me.steamId));
       },
     },
   },
