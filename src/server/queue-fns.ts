@@ -60,10 +60,7 @@ export const mapPools = createServerFn().handler(async (): Promise<Record<Mode, 
 });
 
 // Overdue auto-confirms, plus auto-launch countdowns and timeouts.
-const sweepDueMatches = async () => {
-  await sql()`select finalize_due_matches()`;
-  await sql()`select sweep_mm_matches()`;
-};
+const sweepDueMatches = () => sql()`select sweep_all()`;
 
 // Live entries only: stale ones are swept by pairing passes, but the count is
 // read by visitors who never trigger one. Plus how many games are on right

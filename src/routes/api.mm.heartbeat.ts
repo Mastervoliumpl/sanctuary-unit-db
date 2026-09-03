@@ -7,12 +7,16 @@
 // works with no mod at all. The heartbeat only decides whether a pair gets
 // the `auto` flow.
 //
+// Three round trips: the token, the presence write, then sweep + queued +
+// match. The mod treats a heartbeat older than 15 s as "not launchable", so
+// this has to stay fast — anything over 1.5 s is logged.
+//
 //   POST /api/mm/heartbeat  { state, gameVersion?, modVersion? }
 //   → { queued, match }
 
 import { createFileRoute } from '@tanstack/react-router';
 import { sql } from '../server/db';
-import { authenticate, bad, currentModMatch, json, readJson, sweepAll, withOpponent } from '../server/mm';
+import { authenticate, bad, currentModMatch, json, logSlow, readJson } from '../server/mm';
 import { isModState } from '../lib/mm';
 
 const str = (v: unknown, max: number): string | null => (typeof v === 'string' ? v.slice(0, max) : null);
@@ -21,6 +25,7 @@ export const Route = createFileRoute('/api/mm/heartbeat')({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const startedAt = Date.now();
         const me = await authenticate(request);
         if (!me) return bad(401, 'Session expired or unknown — mint a new one.');
 
@@ -28,6 +33,8 @@ export const Route = createFileRoute('/api/mm/heartbeat')({
         if (!body) return bad(400, 'Body is not JSON.');
         if (!isModState(body.state)) return bad(400, 'state must be menu, lobby, loading or ingame.');
 
+        // Presence first, on its own, so the sweep that follows sees this
+        // heartbeat when a countdown is hitting zero right now.
         await sql()`
           insert into mod_presence (player_id, state, game_version, mod_version, seen_at)
           values (${me.playerId}, ${body.state}, ${str(body.gameVersion, 40)}, ${str(body.modVersion, 40)}, now())
@@ -35,17 +42,15 @@ export const Route = createFileRoute('/api/mm/heartbeat')({
             state = excluded.state, game_version = excluded.game_version,
             mod_version = excluded.mod_version, seen_at = now()`;
 
-        await sweepAll();
+        const [{ queued }] = await sql()<{ queued: boolean }[]>`
+          select sweep_all(), exists (
+            select 1 from queue_entries
+            where player_id = ${me.playerId} and heartbeat_at > now() - interval '90 seconds'
+          ) as queued`;
 
-        const queued = await sql()`
-          select 1 from queue_entries
-          where player_id = ${me.playerId} and heartbeat_at > now() - interval '90 seconds'
-          limit 1`;
-        const match = await currentModMatch(me.playerId);
-        return json(200, {
-          queued: queued.length > 0,
-          match: match ? await withOpponent(match, me.steamId) : null,
-        });
+        const match = await currentModMatch(me.playerId, me.steamId);
+        logSlow('heartbeat', startedAt, `${me.personaName} ${body.state}`);
+        return json(200, { queued, match });
       },
     },
   },

@@ -47,10 +47,7 @@ const view = async (matchId: string, playerId: string | null): Promise<MatchView
 };
 
 // Overdue auto-confirms, plus the auto-launch countdowns and timeouts.
-const sweep = async () => {
-  await sql()`select finalize_due_matches()`;
-  await sql()`select sweep_mm_matches()`;
-};
+const sweep = () => sql()`select sweep_all()`;
 
 const matchIdInput = (data: unknown): { matchId: string } => {
   const d = data as { matchId?: unknown } | null;

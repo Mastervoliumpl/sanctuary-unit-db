@@ -17,7 +17,19 @@ export function sql(): ReturnType<typeof postgres> {
     // the same pooled connection); DATABASE_URL wins if both are set.
     const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
     if (!url) throw new Error('DATABASE_URL (or POSTGRES_URL) must be set (see .env.example)');
-    client = postgres(url, { prepare: false, ssl: 'require', max: 4 });
+    // A warm serverless instance keeps this client between invocations, so a
+    // pooled connection the other end has dropped must not be reused (a
+    // half-open socket hangs a call until the OS gives up — far longer than
+    // any poller waits). Idle connections are closed promptly, none lives
+    // past half an hour, and connecting has a bound.
+    client = postgres(url, {
+      prepare: false,
+      ssl: 'require',
+      max: 4,
+      idle_timeout: 20,
+      max_lifetime: 60 * 30,
+      connect_timeout: 10,
+    });
   }
   return client;
 }

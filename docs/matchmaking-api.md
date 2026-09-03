@@ -106,3 +106,28 @@ change, and both players are free to queue again.
 Unchanged, plus an optional `matchId`. When it names an open match between
 the two reported players, that match takes the result; otherwise it is
 ignored and the newest open match between them is used as before.
+
+## Why a match went manual
+
+Every 1v1 match that could have been auto but wasn't carries the reason in
+`reason` (and on the match page), recorded at pairing time, as long as at
+least one player's mod had heartbeated in the last minute:
+
+- `Skoub isn't running the mod`
+- `Skoub's last heartbeat was 22 s old` (the mod was there but the poll stalled or stopped)
+- `Skoub is in a lobby` / `is loading a game` / `is in a game`
+- `no map in the 1v1 pool has a path set`
+
+Two players' reasons are joined with `; `. A countdown that falls back to
+manual uses the same wording plus `, so host manually`.
+
+Map paths for every shipped map are seeded server-side (`shipped_maps`), so a
+pool map only needs a path typed in on the admin page if the game's list
+doesn't already know it.
+
+## A note on `status: manual`
+
+The agreed list was `countdown | launch | cancelled | failed | done`. Open
+manual matches report `manual` so the mod has one field to check before doing
+anything on the auto path; `done`, `cancelled` and `failed` are reported the
+same way for both modes.
