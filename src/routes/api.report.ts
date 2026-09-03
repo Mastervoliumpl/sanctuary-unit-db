@@ -25,6 +25,7 @@ interface ReportBody {
   ticket: string;
   identity: string;
   mapName?: string;
+  matchId?: string; // the matchmade game this result belongs to, when the mod launched it
   participants: { steamId: string }[];
   winnerSteamIds: string[];
 }
@@ -54,6 +55,9 @@ function parseBody(raw: unknown): ReportBody | string {
   if (!ids.every((s) => typeof s === 'string' && /^\d{17}$/.test(s))) return 'participant steamIds';
   if (ids[0] === ids[1]) return 'duplicate participants';
   if (!d.winnerSteamIds.every((s) => typeof s === 'string' && /^\d{17}$/.test(s))) return 'winnerSteamIds';
+  // An unknown or malformed matchId is ignored, not rejected — the report
+  // still finds the open match between the two players.
+  if (typeof d.matchId !== 'string' || !/^[0-9a-f-]{36}$/.test(d.matchId)) delete d.matchId;
   return d;
 }
 
@@ -81,7 +85,9 @@ export const Route = createFileRoute('/api/report')({
         if (winners.length !== 1) return bad(400, 'Expected exactly one winning participant.');
         const winnerSteamId = winners[0];
 
-        // The open 1v1 match between exactly these two players, if any.
+        // The open 1v1 match between exactly these two players, if any. A
+        // matchId from the mod pins the matchmade game, so a manually hosted
+        // rematch straight after can't be confused with it.
         const [match] = await sql()<
           {
             match_id: string;
@@ -103,7 +109,7 @@ export const Route = createFileRoute('/api/report')({
           join players pw on pw.id = mpw.player_id and pw.steam_id = ${winnerSteamId}
           join players reporter on reporter.steam_id = ${reporterSteamId}
           where m.status in ('in_progress', 'reported')
-          order by m.created_at desc
+          order by (m.id = ${body.matchId ?? null}::uuid) desc nulls last, m.created_at desc
           limit 1`;
         if (!match) return bad(404, 'No open ladder match between these players.');
 

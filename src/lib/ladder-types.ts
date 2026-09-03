@@ -2,6 +2,7 @@
 // the ladder UI. Plain JSON shapes — dates travel as ISO strings.
 
 import type { Mode } from './ladder-modes';
+import type { Faction, MmEventType, MmMode, MmStatus, ModState } from './mm';
 
 export interface Me {
   playerId: string;
@@ -20,11 +21,21 @@ export interface QueueModeStatus {
   needed: number;
 }
 
+// What the in-game mod last said, if it's running. `launchable` is the only
+// thing that matters for pairing: fresh heartbeat, sitting in the menu.
+export interface ModPresence {
+  state: ModState;
+  seenAt: string;
+  launchable: boolean;
+}
+
 // One poll answers for every queue at once.
 export interface PlayStatus {
   matchId: string | null; // an open match to go to instead of queueing
   queues: Record<Mode, QueueModeStatus>;
   liveGames: number; // matches in progress right now, all modes
+  mod: ModPresence | null; // null when the mod hasn't heartbeated recently
+  factions: Faction[]; // what the player queues 1v1 as (from their queue entry, else all)
 }
 
 export interface QueueCounts {
@@ -44,6 +55,17 @@ export interface MatchParticipant {
   ratingAfter: number | null;
   ratingDelta: number | null;
   outcome: 'win' | 'loss' | null;
+  faction: Faction | null; // assigned on auto matches only
+  slot: number | null; // army slot, auto matches only
+  launchable: boolean; // mod heartbeating from the menu right now
+}
+
+export interface MmEventView {
+  type: MmEventType;
+  detail: string | null;
+  playerId: string;
+  personaName: string;
+  at: string;
 }
 
 export interface MatchView {
@@ -52,7 +74,16 @@ export interface MatchView {
   teamSize: number;
   status: MatchStatus;
   mapName: string;
+  mapPath: string | null;
   hostPlayerId: string;
+  // Auto-launch lifecycle (see src/lib/mm.ts). Manual matches: mmStatus is
+  // 'manual' while open; mmReason says why if they fell back from auto.
+  mmMode: MmMode;
+  mmStatus: MmStatus;
+  countdownEndsAt: string | null;
+  sessionId: string | null;
+  mmReason: string | null;
+  mmEvents: MmEventView[];
   participants: MatchParticipant[];
   reportedBy: string | null;
   reportedWinnerTeam: number | null;
@@ -111,6 +142,7 @@ export interface LadderMapRow {
   name: string;
   size: number;
   enabled: boolean;
+  path: string | null; // the game's map path; needed before the mod can auto-launch it
 }
 
 export interface AdminMatches {
