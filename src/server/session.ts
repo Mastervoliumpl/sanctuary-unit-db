@@ -42,6 +42,38 @@ export async function sessionCookies(session: Session): Promise<string[]> {
   ];
 }
 
+// Where to land after Steam sign-in. The login route stashes the page the
+// player came from here and the callback reads it back — a cookie rather
+// than a query param on return_to, so it survives whatever Steam does to
+// that URL. Scoped to the auth routes and short-lived; Lax is enough since
+// the callback is a top-level GET navigation from Steam.
+const RETURN_TO_COOKIE = 'sdb_return_to';
+const RETURN_TO_MAX_AGE_S = 60 * 10;
+
+export function returnToCookie(path: string): string {
+  return `${RETURN_TO_COOKIE}=${encodeURIComponent(path)}; Path=/api/auth/steam; Max-Age=${RETURN_TO_MAX_AGE_S}; HttpOnly; Secure; SameSite=Lax`;
+}
+
+export function clearReturnToCookie(): string {
+  return `${RETURN_TO_COOKIE}=; Path=/api/auth/steam; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;
+}
+
+// Raw (unvalidated) value from a request's Cookie header, or null.
+export function readReturnToCookie(request: Request): string | null {
+  const header = request.headers.get('cookie') ?? '';
+  for (const part of header.split(';')) {
+    const [name, ...rest] = part.trim().split('=');
+    if (name === RETURN_TO_COOKIE) {
+      try {
+        return decodeURIComponent(rest.join('='));
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
 export function clearSessionCookies(): string[] {
   return [
     `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`,
