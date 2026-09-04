@@ -33,7 +33,7 @@ function cleanFixture() {
 }
 
 try {
-  for (const entry of ['src', 'public', 'package.json', 'vite.config.ts', 'tsconfig.json']) {
+  for (const entry of ['src', 'public', 'scripts', 'package.json', 'vite.config.ts', 'tsconfig.json']) {
     cpSync(join(root, entry), join(temporary, entry), { recursive: true });
   }
   symlinkSync(join(root, 'node_modules'), dependencies, process.platform === 'win32' ? 'junction' : 'dir');

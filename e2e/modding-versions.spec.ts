@@ -5,6 +5,7 @@ test('version selection preserves a document and reports a missing-document fall
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/modding');
   const originalId = await page.getByLabel('Documentation version').inputValue();
+  await page.route('**/_serverFn/**', (route) => route.abort());
   await page.goto(`/modding/${originalId}/lua/overview`);
   await page.getByLabel('Documentation version').selectOption('test-snapshot-1');
   await expect(page).toHaveURL(/\/modding\/test-snapshot-1\/lua\/overview$/);

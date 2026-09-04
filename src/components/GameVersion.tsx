@@ -5,31 +5,17 @@
 
 import { useEffect, useState } from 'react';
 import type { GameBuild } from '../lib/types';
-
-interface LiveCheck {
-  live: { buildId: number; updatedAt: string | null } | null;
-  upToDate: boolean | null;
-}
-
-// One lookup per page load, shared by every toolbar that mounts.
-let pending: Promise<LiveCheck | null> | null = null;
-
-function checkLive(): Promise<LiveCheck | null> {
-  pending ??= fetch('/api/game-version')
-    .then((r) => (r.ok ? (r.json() as Promise<LiveCheck>) : null))
-    .catch(() => null);
-  return pending;
-}
+import { checkLiveBuild, type LiveBuildCheck } from '../lib/game-version';
 
 const day = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
 
 export function GameVersion({ game, generatedAt }: { game: GameBuild | null; generatedAt: string }) {
-  const [check, setCheck] = useState<LiveCheck | null>(null);
+  const [check, setCheck] = useState<LiveBuildCheck | null>(null);
 
   useEffect(() => {
     let alive = true;
-    checkLive().then((c) => alive && setCheck(c));
+    checkLiveBuild().then((c) => alive && setCheck(c));
     return () => {
       alive = false;
     };

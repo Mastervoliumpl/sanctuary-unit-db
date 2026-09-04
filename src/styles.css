@@ -2471,6 +2471,16 @@ html.modding-route {
   border-radius: var(--radius);
   font-size: 12px;
 }
+.docs-version-notice p {
+  margin: 0 0 6px;
+}
+.docs-version-notice a {
+  color: var(--accent);
+}
+.docs-version-notice small {
+  display: block;
+  margin-top: 8px;
+}
 .docs-kicker {
   margin: 0 0 7px;
   color: var(--accent);
