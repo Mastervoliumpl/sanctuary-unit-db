@@ -47,8 +47,11 @@ The build already ships LuaLS annotations for the generated API:
 </Paths>
 
 The reviewed client function file contains 424 functions and the host file contains 254. The adjacent class files
-describe related types. Open `engine\LJ\lua\` as the workspace root in an editor with Lua Language Server so it
-can read `.luarc.json`. That configuration disables `io`, `os`, `debug`, and `ffi` to match the sandboxed runtime.
+describe related types. Their annotations and function descriptions are generated from `GenerateComment`
+attributes on the C# delegates in `EM.Lua.Templates.FFI.LuaToEngineDelegates`; `GenerateLuaInterface` determines
+whether an interface appears in the host or client output. Open `engine\LJ\lua\` as the workspace root in an
+editor with Lua Language Server so it can read `.luarc.json`. That configuration disables `io`, `os`, `debug`,
+and `ffi` to match the sandboxed runtime.
 
 ## Sandbox limits
 
