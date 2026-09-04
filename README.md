@@ -39,6 +39,21 @@ manually:
 SANCTUARY_PATH="D:/SteamLibrary/steamapps/common/Sanctuary Shattered Sun Demo" npm run extract
 ```
 
+### Maintaining modding snapshots
+
+Each release gets an immutable URL namespace under
+`src/content/modding/docs/<game-version>-<steam-build>/`. Add and order its MDX
+pages in that directory's `meta.json`, add matching build metadata under
+`src/content/modding/snapshots/`, then register the snapshot in
+`src/content/modding/registry.ts`. The highest numeric Steam build becomes the
+default; array order does not control it.
+
+Every MDX page needs `title`, `description`, and `navTitle` frontmatter. Keep
+links snapshot-relative so the version switcher can preserve the current page.
+Corrections to an old snapshot should stay scoped to what was true for that
+inspected build; new game behavior belongs in a new snapshot. Unit tests reject
+missing metadata, broken internal links, duplicate builds, and navigation drift.
+
 ## Publishing maps
 
 `/maps` lists community maps. The zips are not in the repo — each map is a
