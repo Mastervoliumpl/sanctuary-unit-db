@@ -71,8 +71,8 @@ export function QueueCard({
             Searching… <strong>{elapsed(seconds)}</strong>
           </p>
           <p className="dim">
-            Matching within ±{searchRadius(seconds)} rating — the range widens the longer you wait. Keep this
-            tab open.
+            Matching within ±{searchRadius(seconds)} rating — the range widens the longer you wait. Browse the
+            rest of the site meanwhile; just keep SanctuaryDB open in a tab.
           </p>
           {auto && (
             <p className="dim">
