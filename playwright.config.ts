@@ -5,6 +5,7 @@ import { defineConfig } from '@playwright/test';
 // `npm run build` must have run first (CI already builds before testing).
 export default defineConfig({
   testDir: 'e2e',
+  testIgnore: 'modding-versions.spec.ts',
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
   use: {

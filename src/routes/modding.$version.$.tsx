@@ -126,6 +126,20 @@ function ModdingDocumentPage() {
           ) : null}
 
           <div className="docs-document">
+            {data.toc.length > 0 ? (
+              <details className="docs-toc" open>
+                <summary>On this page</summary>
+                <nav aria-label="On this page">
+                  <ol>
+                    {data.toc.map((entry) => (
+                      <li key={entry.url} style={{ marginInlineStart: `${Math.max(0, entry.depth - 2)}em` }}>
+                        <a href={entry.url}>{entry.title}</a>
+                      </li>
+                    ))}
+                  </ol>
+                </nav>
+              </details>
+            ) : null}
             <Mdx components={getModdingMdxComponents(data.snapshot, data.documentPath)} />
           </div>
 

@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { getModdingDocumentData, moddingSource } from './source.server';
 import {
   canonicalDocumentUrl,
   createSnapshotRegistry,
@@ -111,19 +114,28 @@ describe('modding content validation', () => {
 });
 
 describe('compiled Fumadocs source', () => {
-  it('exposes all reviewed pages with serialized navigation and search data', async () => {
-    process.env.SITE_URL = 'https://docs.example';
-    const { getModdingDocumentData } = await import('./source.server');
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('keeps source metadata available without serializing unused route fields', async () => {
+    vi.stubEnv('SITE_URL', 'https://docs.example');
     const page = await getModdingDocumentData(snapshot().id, 'lua/overview');
+    const sourcePage = moddingSource.getPage([snapshot().id, 'lua', 'overview']);
+    const files = readdirSync(join(import.meta.dirname, 'docs', snapshot().id), { recursive: true })
+      .map(String)
+      .filter((file) => file.endsWith('.mdx'));
 
     expect(page).toBeDefined();
-    expect(page?.snapshotDocumentPaths[snapshot().id]).toHaveLength(11);
-    expect(page?.pageTree).toMatchObject({ $fumadocs_loader: 'page-tree' });
-    expect(page?.toc.some((entry) => entry.url === '#multiplayer-lua-hash-gate')).toBe(true);
-    expect(page?.structuredData.headings.some((entry) => entry.id === 'multiplayer-lua-hash-gate')).toBe(
-      true,
+    expect([...page!.snapshotDocumentPaths[snapshot().id]].sort()).toEqual(
+      files.map((file) => file.replaceAll('\\', '/').replace(/\.mdx$/, '')).sort(),
     );
-    expect(page?.references).toContain('./import');
+    expect(page).not.toHaveProperty('pageTree');
+    expect(page).not.toHaveProperty('structuredData');
+    expect(page).not.toHaveProperty('references');
+    expect(page?.toc.some((entry) => entry.url === '#multiplayer-lua-hash-gate')).toBe(true);
+    expect(
+      sourcePage?.data.structuredData.headings.some((entry) => entry.id === 'multiplayer-lua-hash-gate'),
+    ).toBe(true);
+    expect(sourcePage?.data.extractedReferences?.map((entry) => entry.href)).toContain('./import');
     expect(page?.canonicalUrl).toBe('https://docs.example/modding/0.0.1.11-25019767/lua/overview');
   });
 });

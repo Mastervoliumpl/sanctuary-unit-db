@@ -6,6 +6,7 @@ import { fumadocsMdx } from 'fumadocs-mdx/vite';
 import { readdirSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { MODDING_SNAPSHOTS } from './src/content/modding/registry.ts';
+import { siteOrigin } from './src/lib/site-origin.ts';
 
 const contentRoot = resolve('src/content/modding/docs');
 
@@ -30,7 +31,7 @@ function moddingPrerenderPages(): { path: string }[] {
 // Content routes are prerendered where possible, while the ladder and modding
 // reference retain server handlers for authenticated data, redirects, and
 // proper 404 responses. Nitro packages both the static output and Node server.
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   // Server functions read process.env (SUPABASE_URL etc.), which plain Vite
   // only fills from the shell — so surface .env files there too, without
   // letting them shadow anything the shell already set.
@@ -38,6 +39,7 @@ export default defineConfig(({ mode }) => {
   for (const [key, value] of Object.entries(env)) {
     process.env[key] ??= value;
   }
+  process.env.SITE_URL = siteOrigin(process.env.SITE_URL, command === 'build');
 
   return {
     server: { port: 5173 },

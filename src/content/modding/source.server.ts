@@ -1,7 +1,7 @@
 import { loader } from 'fumadocs-core/source';
 import { getPageTreeRoots } from 'fumadocs-core/page-tree';
 import type { Folder, Node, Root } from 'fumadocs-core/page-tree';
-import type { SerializedPageTree } from 'fumadocs-core/source/client';
+import { siteOrigin } from '../../lib/site-origin';
 import { moddingDocs } from './collection';
 import {
   DEFAULT_MODDING_SNAPSHOT,
@@ -33,16 +33,10 @@ export interface ModdingDocumentData {
   groups: ModdingNavigationGroup[];
   inspectedOnLabel: string;
   next?: ModdingNavigationDocument;
-  pageTree: SerializedPageTree;
   previous?: ModdingNavigationDocument;
-  references: readonly string[];
   snapshots: readonly ModdingSnapshot[];
   snapshot: ModdingSnapshot;
   snapshotDocumentPaths: Record<string, string[]>;
-  structuredData: {
-    contents: { content: string; heading: string | undefined }[];
-    headings: { content: string; id: string }[];
-  };
   title: string;
   toc: readonly { depth: number; title: string; url: string }[];
 }
@@ -170,20 +164,16 @@ export async function getModdingDocumentData(
   const index = documents.findIndex((entry) => entry.path === documentPath);
   if (index < 0) return undefined;
 
-  const siteUrl = process.env.SITE_URL?.trim() ?? '';
+  const siteUrl = siteOrigin(process.env.SITE_URL, process.env.NODE_ENV === 'production');
   return {
-    canonicalUrl: siteUrl
-      ? canonicalDocumentUrl(siteUrl, snapshot.id, documentPath)
-      : `/modding/${snapshot.id}/${documentPath}`,
+    canonicalUrl: canonicalDocumentUrl(siteUrl, snapshot.id, documentPath),
     collectionPath: page.path,
     description: page.data.description,
     documentPath,
     groups,
     inspectedOnLabel: formatInspectionDate(snapshot.inspectedOn),
     next: documents[index + 1],
-    pageTree: await moddingSource.serializePageTree(tree),
     previous: documents[index - 1],
-    references: (page.data.extractedReferences ?? []).map((reference) => reference.href),
     snapshots: MODDING_SNAPSHOTS,
     snapshot,
     snapshotDocumentPaths: Object.fromEntries(
@@ -195,15 +185,16 @@ export async function getModdingDocumentData(
           .map((candidate) => candidate.slugs.slice(1).join('/')),
       ]),
     ),
-    structuredData: page.data.structuredData,
     title: page.data.title,
-    toc: page.data.toc.map((item) => ({
-      depth: item.depth,
-      title:
-        page.data.structuredData.headings.find((heading) => `#${heading.id}` === item.url)?.content ??
-        item.url,
-      url: item.url,
-    })),
+    toc: page.data.toc
+      .filter((item) => item.depth > 1)
+      .map((item) => ({
+        depth: item.depth,
+        title:
+          page.data.structuredData.headings.find((heading) => `#${heading.id}` === item.url)?.content ??
+          item.url,
+        url: item.url,
+      })),
   };
 }
 

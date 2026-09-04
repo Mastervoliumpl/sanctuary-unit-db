@@ -2826,6 +2826,41 @@ html.modding-route {
     display: none;
   }
 }
+.docs-toc {
+  margin-bottom: 28px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.docs-toc summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 600;
+}
+.docs-toc ol {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+}
+.docs-toc a {
+  display: inline-block;
+  padding-block: 4px;
+  overflow-wrap: anywhere;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+.docs-toc a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.docs-toc a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.docs-document :is(h2, h3, h4) {
+  scroll-margin-top: calc(var(--header-h) + 20px);
+}
 
 /* The three mod downloads on the Play page's reporter card: one full-width
    strip under the queue cards. */

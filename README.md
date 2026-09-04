@@ -618,9 +618,14 @@ can't, because there's no game install on a build server. The split is:
   in a serverless function for the server functions and `/api/auth/*` routes.
   The ladder needs env vars (see `.env.example`): `DATABASE_URL`,
   `STEAM_API_KEY`, `SESSION_SECRET`, `SITE_URL`.
+
+  Production builds and servers require `SITE_URL` as an absolute HTTP(S) origin without a path, query, or
+  fragment. Document canonicals and sitemap entries use that origin. Missing or invalid values fail the build.
+  Use the deployed public origin in hosting configuration; `http://localhost:4173` is only for local browser tests.
   Steam sign-in only works on the origin `SITE_URL` names — not on preview
   deployment URLs. The database schema lives in `supabase/migrations/`, applied
   with `supabase db push` (or pasted into the SQL editor).
+
 - `npm run extract` / `icons` / `refresh` need the game install and only ever
   run on your machine. Their output is committed.
 

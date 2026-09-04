@@ -18,6 +18,7 @@
     "test": "vitest run",
     "diff": "node scripts/diff-data.js",
     "test:e2e": "playwright test",
+    "test:modding-versions": "node scripts/test-modding-versions.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
