@@ -1932,6 +1932,12 @@ img.unit-icon[data-muted='true'] {
 .reporter-card .install {
   margin-bottom: 0;
   background: var(--bg);
+  max-width: none;
+}
+.install-static h3 {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  font-weight: 600;
 }
 
 .map-pool h3 {
@@ -2818,5 +2824,45 @@ html.modding-route {
   }
   .docs-pager > span {
     display: none;
+  }
+}
+
+/* The three mod downloads on the Play page's reporter card: one full-width
+   strip under the queue cards. */
+.reporter-card {
+  margin-top: 12px;
+}
+.mod-downloads {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.mod-downloads li {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.mod-downloads li p {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+.reporter-card .mod-downloads .dl-btn {
+  display: block;
+  text-align: center;
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+@media (max-width: 720px) {
+  .mod-downloads {
+    grid-template-columns: 1fr;
   }
 }
