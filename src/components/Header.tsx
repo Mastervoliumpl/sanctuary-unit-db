@@ -65,6 +65,14 @@ export function Header() {
           Maps
         </Link>
         <Link
+          to="/modding"
+          className="navlink"
+          activeOptions={{ includeSearch: false }}
+          activeProps={{ className: 'navlink active' }}
+        >
+          Modding
+        </Link>
+        <Link
           to="/play"
           className="navlink"
           activeOptions={{ includeSearch: false }}
