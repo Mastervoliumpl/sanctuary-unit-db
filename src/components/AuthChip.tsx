@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { loadMe } from '../lib/auth';
+import { signInHref } from '../lib/return-to';
 import type { Me } from '../lib/ladder-types';
 
 async function signOut() {
@@ -34,7 +35,7 @@ export function AuthChip() {
 
   if (!me) {
     return (
-      <a className="steam-signin" href="/api/auth/steam">
+      <a className="steam-signin" href={signInHref()}>
         Sign in through Steam
       </a>
     );
