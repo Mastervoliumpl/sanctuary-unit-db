@@ -1,18 +1,21 @@
 // Steam sends the player back here after sign-in. Verify the assertion with
 // Steam itself, upsert the player row (never touching rating/stats — upsert
-// only writes the columns given), set the session cookies and land on the
-// ladder.
+// only writes the columns given), set the session cookies and land back on
+// the page the player signed in from (the `next` param the login route put
+// in return_to), or the ladder if that's missing or not a same-site path.
 
 import { createFileRoute } from '@tanstack/react-router';
 import { siteUrl, sql } from '../server/db';
 import { sessionCookies } from '../server/session';
 import { fetchPersona, verifySteamCallback } from '../server/steam';
+import { safeReturnTo } from '../lib/return-to';
 
 export const Route = createFileRoute('/api/auth/steam/callback')({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const steamId = await verifySteamCallback(new URL(request.url));
+        const url = new URL(request.url);
+        const steamId = await verifySteamCallback(url);
         if (!steamId) return new Response('Steam sign-in failed.', { status: 403 });
 
         const persona = await fetchPersona(steamId);
@@ -27,7 +30,9 @@ export const Route = createFileRoute('/api/auth/steam/callback')({
         if (!player) return new Response('Sign-in failed.', { status: 500 });
         if (player.banned_at) return new Response('This account is banned from the ladder.', { status: 403 });
 
-        const headers = new Headers({ Location: `${siteUrl()}/ladder` });
+        const headers = new Headers({
+          Location: `${siteUrl()}${safeReturnTo(url.searchParams.get('next'))}`,
+        });
         for (const cookie of await sessionCookies({ playerId: player.id, steamId })) {
           headers.append('Set-Cookie', cookie);
         }
