@@ -2332,21 +2332,25 @@ img.unit-icon[data-muted='true'] {
   gap: 14px;
 }
 
-/* The three mod downloads on the Play page's reporter card. */
+/* The three mod downloads on the Play page's reporter card: one full-width
+   strip under the queue cards. */
+.reporter-card {
+  margin-top: 12px;
+}
 .mod-downloads {
   list-style: none;
   margin: 0 0 10px;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 .mod-downloads li {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 10px 12px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -2356,10 +2360,14 @@ img.unit-icon[data-muted='true'] {
   font-size: 12px;
 }
 .reporter-card .mod-downloads .dl-btn {
-  display: inline-block;
+  display: block;
+  text-align: center;
   margin: 0;
-  flex-shrink: 0;
-  white-space: nowrap;
   padding: 6px 12px;
   font-size: 12px;
+}
+@media (max-width: 720px) {
+  .mod-downloads {
+    grid-template-columns: 1fr;
+  }
 }

@@ -46,8 +46,8 @@ export function ReporterCard() {
           <div>
             <strong>Mod Manager</strong>
             <p className="dim">
-              Everything you need to get started with mods in Sanctuary: adds a Mods page to the main menu to
-              switch mods on and off, and loads any mod dropped into the <code>SanctuaryMods</code> folder.
+              Everything you need to start modding Sanctuary: a Mods page in the main menu, and it loads any
+              mod in the <code>SanctuaryMods</code> folder.
             </p>
           </div>
           <a className="dl-btn" href={DOWNLOADS.modManager}>
@@ -58,8 +58,8 @@ export function ReporterCard() {
           <div>
             <strong>LadderReporter</strong> <span className="dim">for the Mod Manager</span>
             <p className="dim">
-              Just the mod: auto-launches you into the game when the ladder matches you with an opponent, and
-              reports the result. Needs the Mod Manager above.
+              Just the mod: auto-launches the game when you're matched and reports the result. Needs the Mod
+              Manager.
             </p>
           </div>
           <a className="dl-btn" href={DOWNLOADS.reporterForModManager}>
@@ -69,10 +69,7 @@ export function ReporterCard() {
         <li>
           <div>
             <strong>LadderReporter</strong> <span className="dim">standalone</span>
-            <p className="dim">
-              The same mod with everything it needs to run, but without the Mod Manager. Pick this if you only
-              want the ladder.
-            </p>
+            <p className="dim">The same mod with everything it needs to run, without the Mod Manager.</p>
           </div>
           <a className="dl-btn" href={DOWNLOADS.reporterStandalone}>
             Download · v{REPORTER_VERSION}
@@ -84,13 +81,10 @@ export function ReporterCard() {
         <summary>How to install it</summary>
         <ol>
           <li>
-            Extract the zip into your Sanctuary <code>engine</code> folder. For the Mod Manager or the
-            standalone build, <code>winhttp.dll</code> ends up next to <code>Sanctuary.exe</code>; the
-            Mod-Manager build of LadderReporter just adds a <code>SanctuaryMods\LadderReporter</code> folder.
+            Extract the zip into your Sanctuary <code>engine</code> folder, so <code>winhttp.dll</code> sits
+            next to <code>Sanctuary.exe</code>.
           </li>
-          <li>
-            Launch the game. LadderReporter appears under UI Mods; play ranked and results just appear here.
-          </li>
+          <li>Launch the game and play ranked — matches start themselves and results appear here.</li>
         </ol>
         <div className="install-path">
           <code>{ENGINE_PATH}</code>
@@ -108,10 +102,8 @@ export function ReporterCard() {
           </button>
         </div>
         <p className="hint">
-          Upgrading from 0.2.0 or earlier? Delete <code>BepInEx\plugins\LadderReporter.dll</code>; the mod now
-          lives under <code>SanctuaryMods</code>. The mod only reports Steam lobby 1v1s that match an open
-          ladder game — skirmish, LAN, observing and casual games are ignored, and either player having it
-          installed is enough to report. Source and release notes:{' '}
+          The mod only reports Steam lobby 1v1s that match an open ladder game — skirmish, LAN, observing and
+          casual games are ignored. Source and release notes:{' '}
           <a href={MODS_REPO} target="_blank" rel="noreferrer">
             sanctuary-mods on GitHub
           </a>

@@ -163,10 +163,12 @@ function PlayPage() {
         </div>
         {error && <p className="queue-error">{error}</p>}
 
-        <section className="play-extras">
-          {signedIn && <AlertSettings />}
-          <ReporterCard />
-        </section>
+        <ReporterCard />
+        {signedIn && (
+          <section className="play-extras">
+            <AlertSettings />
+          </section>
+        )}
       </main>
     </>
   );
