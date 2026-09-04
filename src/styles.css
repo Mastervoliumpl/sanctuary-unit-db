@@ -2299,3 +2299,35 @@ img.unit-icon[data-muted='true'] {
   background: var(--bg);
   color: var(--text);
 }
+
+/* App-wide "you're queued" strip under the header. */
+.queue-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 7px 16px;
+  font-size: 12.5px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-raised));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.queue-banner strong {
+  font-variant-numeric: tabular-nums;
+}
+.queue-banner-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: queue-banner-pulse 1.6s ease-in-out infinite;
+}
+@keyframes queue-banner-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.queue-banner-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+}

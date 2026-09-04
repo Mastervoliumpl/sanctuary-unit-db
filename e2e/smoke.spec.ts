@@ -9,9 +9,11 @@ function collectErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => {
-    // The Vercel Analytics/Speed Insights scripts only exist on Vercel, so
-    // their 404s under the static test server are expected noise.
-    if (m.type() === 'error' && !m.location().url.includes('/_vercel/')) {
+    // The Vercel Analytics/Speed Insights scripts and the game-version check
+    // (/api/game-version) only exist with a backend, so their 404s under the
+    // static test server are expected noise.
+    const url = m.location().url;
+    if (m.type() === 'error' && !url.includes('/_vercel/') && !url.includes('/api/game-version')) {
       errors.push(`console: ${m.text()}`);
     }
   });
@@ -22,7 +24,7 @@ test('unit board renders, filters via URL, and opens the detail panel', async ({
   const errors = collectErrors(page);
 
   await page.goto('/');
-  await expect(page.locator('.toolbar span')).toContainText(/of \d+ units/);
+  await expect(page.locator('.toolbar')).toContainText(/of \d+ units/);
   expect(await page.locator('.card').count()).toBeGreaterThan(50);
 
   // Legacy URL format still filters.
