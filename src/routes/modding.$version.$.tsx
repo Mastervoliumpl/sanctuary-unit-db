@@ -1,23 +1,9 @@
-import { createServerFn } from '@tanstack/react-start';
 import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router';
-import { z } from 'zod';
 import { getModdingMdxComponents } from '../content/modding/components';
 import { moddingDocs } from '../content/modding/collection';
 import { resolveVersionSwitch } from '../content/modding/registry';
-
-const requestSchema = z.object({
-  documentPath: z.string().min(1),
-  snapshotId: z.string().min(1),
-});
-
-const loadDocument = createServerFn({ method: 'GET' })
-  .validator((input: unknown) => requestSchema.parse(input))
-  .handler(async ({ data }) => {
-    const { getModdingDocumentData } = await import('../content/modding/source.server');
-    const result = await getModdingDocumentData(data.snapshotId, data.documentPath);
-    if (!result) throw notFound();
-    return result;
-  });
+import { getStaticModdingDocument } from '../content/modding/navigation';
+import { SnapshotNotice } from '../content/modding/SnapshotNotice';
 
 interface ModdingSearch {
   versionFallback?: string;
@@ -30,7 +16,8 @@ export const Route = createFileRoute('/modding/$version/$')({
   loader: async ({ params }) => {
     const documentPath = params._splat?.replace(/^\/+|\/+$/g, '') ?? '';
     if (!documentPath) throw notFound();
-    const data = await loadDocument({ data: { documentPath, snapshotId: params.version } });
+    const data = getStaticModdingDocument(params.version, documentPath);
+    if (!data) throw notFound();
     await moddingDocs.getPage(data.collectionPath)?.preload();
     return data;
   },
@@ -117,6 +104,12 @@ function ModdingDocumentPage() {
             <span>{data.snapshot.status}</span>
             <span>Inspected {data.inspectedOnLabel}</span>
           </div>
+
+          <SnapshotNotice
+            snapshot={data.snapshot}
+            documentPath={data.documentPath}
+            paths={data.snapshotDocumentPaths}
+          />
 
           {search.versionFallback ? (
             <div className="docs-version-notice" role="status">

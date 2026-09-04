@@ -7,6 +7,7 @@ import { readdirSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { MODDING_SNAPSHOTS } from './src/content/modding/registry.ts';
 import { siteOrigin } from './src/lib/site-origin.ts';
+import { moddingNavigation } from './scripts/modding-navigation.ts';
 
 const contentRoot = resolve('src/content/modding/docs');
 
@@ -44,6 +45,7 @@ export default defineConfig(({ mode, command }) => {
   return {
     server: { port: 5173 },
     plugins: [
+      moddingNavigation(),
       ...fumadocsMdx(),
       tanstackStart({
         pages: [{ path: '/' }, ...moddingPrerenderPages()],

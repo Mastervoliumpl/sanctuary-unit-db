@@ -206,6 +206,33 @@ test('modding ToC is usable on a narrow screen', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
+test('document navigation needs no metadata server call and discloses an older snapshot', async ({
+  page,
+}) => {
+  await page.route('**/api/game-version', (route) => route.fulfill({ json: { live: null, upToDate: null } }));
+  await page.goto('/modding/0.0.1.11-25019767/lua/overview');
+  await expect(page.locator('html')).toHaveClass(/modding-route/);
+  await expect(page.locator('[data-freshness="older"]')).toContainText('older build');
+  const calls: string[] = [];
+  await page.route('**/_serverFn/**', (route) => {
+    calls.push(route.request().url());
+    return route.abort();
+  });
+  await page
+    .locator('.docs-nav')
+    .getByRole('link', { name: /Build information/ })
+    .click();
+  await expect(page).toHaveURL(/\/build-information$/);
+  await page.locator('.docs-pager').getByRole('link', { name: /Next/ }).click();
+  await expect(page).toHaveURL(/\/system$/);
+  await page
+    .locator('.docs-pager')
+    .getByRole('link', { name: /Previous/ })
+    .click();
+  await expect(page).toHaveURL(/\/build-information$/);
+  expect(calls).toEqual([]);
+});
+
 test('ladder and play pages render their shells with no database', async ({ page }) => {
   // No database is configured in this test environment, so both pages must
   // render signed-out/empty instead of crashing.
