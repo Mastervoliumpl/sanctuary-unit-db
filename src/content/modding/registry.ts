@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import snapshot25019767 from './snapshots/0.0.1.11-25019767/snapshot.json' with { type: 'json' };
+import snapshot25114838 from './snapshots/0.0.1.14-25114838/snapshot.json' with { type: 'json' };
 
 const pathPattern = /^[a-z0-9]+(?:[/-][a-z0-9]+)*$/;
 const snapshotIdPattern = /^[a-z0-9][a-z0-9.-]*$/;
@@ -44,7 +45,7 @@ export function createSnapshotRegistry(input: readonly unknown[]): readonly Modd
   return [...snapshots].sort((left, right) => right.steamBuild - left.steamBuild);
 }
 
-export const MODDING_SNAPSHOTS = createSnapshotRegistry([snapshot25019767]);
+export const MODDING_SNAPSHOTS = createSnapshotRegistry([snapshot25019767, snapshot25114838]);
 export const DEFAULT_MODDING_SNAPSHOT = MODDING_SNAPSHOTS[0];
 
 export function getModdingSnapshot(id: string): ModdingSnapshot | undefined {

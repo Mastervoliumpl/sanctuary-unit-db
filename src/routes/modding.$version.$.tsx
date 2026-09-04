@@ -24,8 +24,11 @@ export const Route = createFileRoute('/modding/$version/$')({
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
-          { title: `${loaderData.title} | SanctuaryDB` },
-          { name: 'description', content: loaderData.description },
+          { title: `${loaderData.title} | Steam ${loaderData.snapshot.steamBuild} | SanctuaryDB` },
+          {
+            name: 'description',
+            content: `${loaderData.description} Game ${loaderData.snapshot.gameVersion}, Steam build ${loaderData.snapshot.steamBuild}.`,
+          },
         ]
       : [],
     links: loaderData ? [{ rel: 'canonical', href: loaderData.canonicalUrl }] : [],

@@ -1,0 +1,42 @@
+---
+title: Map files and included tools
+description: Local map inventory, generator options, and map-editor evidence for build 25114838.
+navTitle: Maps and editor
+---
+
+# Map files and included tools
+
+<Lead>
+  The inspected Maps directory contains 99 .sanmap files: 28 named maps and 71 with generated-map prefixes.
+  This is a local directory inventory, not a verified inventory of a clean Steam depot.
+</Lead>
+
+## Locations and format
+
+<Paths>
+  <code>engine\Sanctuary_Data\Maps</code>
+  <code>engine\Sanctuary-Map-Generation\README.txt</code>
+  <code>engine\Sanctuary-Map-Generation\ExtraneousMapGen.exe</code>
+</Paths>
+
+The inspected maps begin with readable JSON. A checked named-map header has `fileVersion` 3 and includes
+`mapVersion`, `name`, `width`, `length`, and `height`. This is a sample header, not a complete schema
+or a claim that all maps have identical metadata.
+
+## Generator options
+
+The shipped README distinguishes listing from selection: `--biomes` lists biomes and `--biome` selects one;
+`--styles` lists styles and `--style` selects one.
+
+It also documents `--help`, `--weights`, `--seed`, `--map-size`, `--map-detail-size`, `--num-teams`,
+`--spawn-count`, `--folder-path`, and `--map-name`. Further options cover terrain/resource densities,
+preview output, tournament/blind/unexplored modes, and generating multiple maps. Consult the installed README
+for the full option list.
+
+The generator was inspected but not run. Use a separate output directory and a distinct map name when testing it.
+
+## Editor code
+
+The assembly retains map-editor types and `MapManager.IsMapEditor`. The manager can create a map-editor
+world. An available type or method does not establish an accessible menu entry or a working editor launch
+sequence; those remain runtime research.

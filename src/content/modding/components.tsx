@@ -97,8 +97,8 @@ function MdxLink({
 }: AnchorHTMLAttributes<HTMLAnchorElement> & { currentPath: string; snapshot: ModdingSnapshot }) {
   if (/^(?:[a-z]+:|#)/i.test(href)) return <a href={href} {...props} />;
   const base = `https://content.invalid/modding/${snapshot.id}/${currentPath}`;
-  const resolved = new URL(href, base).pathname;
-  return <a href={resolved} {...props} />;
+  const resolved = new URL(href, base);
+  return <a href={`${resolved.pathname}${resolved.search}${resolved.hash}`} {...props} />;
 }
 
 export function getModdingMdxComponents(snapshot: ModdingSnapshot, currentPath: string): MDXComponents {

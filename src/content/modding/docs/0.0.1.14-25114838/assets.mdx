@@ -1,0 +1,36 @@
+---
+title: Asset overrides and sanpacks
+description: Asset search paths and archive precedence checked in build 25114838.
+navTitle: Assets and sanpacks
+---
+
+# Asset overrides and sanpacks
+
+<Lead>
+  The managed asset loader still searches base content before installation and user Mods directories. Entries
+  are indexed by a path-derived ID.
+</Lead>
+
+## Search order
+
+1. `engine\Sanctuary_Data\Gamedata`
+2. `engine\Sanctuary_Data\Mods`
+3. The user's Documents folder, followed by `My Games\Enhearten Media\Sanctuary\Mods`
+
+`Data.LoadGamedataPaths` adds the two mod paths when `AllowMods` is true; its initializer is true in this
+assembly. Later entries can replace earlier entries with the same `PathToID` key. The installation Mods
+directory was absent in the inspected tree.
+
+## Archives and loose files
+
+The loader handles loose files and ZIP-based `.sanpack` archives. The inspected Gamedata directory contains
+eight sanpacks. Virtual entry paths matter because the loader derives IDs from paths.
+
+Archive-resident templates are additional to the loose-template inventory on the [system page](./system).
+Changing simulation data still requires coordinated test files across all clients.
+
+## Runtime verification
+
+Asset replacement was not exercised in this inspection. Start with a copied cosmetic asset in a user Mods path,
+keep its virtual path, and check the result offline. Record the selected source and any diagnostic messages
+before concluding that an override works.

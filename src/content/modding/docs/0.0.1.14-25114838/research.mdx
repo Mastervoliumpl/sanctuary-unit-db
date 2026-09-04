@@ -1,0 +1,41 @@
+---
+title: Research status and next checks
+description: Verified evidence and remaining runtime questions for Steam build 25114838.
+navTitle: Research status
+---
+
+# Research status and next checks
+
+<Lead>
+  This snapshot records static inspection of the exact installed build. A proposed test is not evidence that a
+  mod workflow already works.
+</Lead>
+
+## Verified by inspection
+
+Build identity, Unity version, directory-scoped inventories, generated API counts, Lua hash normalization,
+replacement/append lookup, asset search order, the logging channel map, and the listed PlayerPrefs keys were
+checked against this installation or its managed assembly.
+
+## Runtime work still open
+
+- Activate a small Lua override and trace the chosen replacement and append files.
+- Exercise a matching and mismatching Lua-hash join, then test template changes in a controlled session.
+- Produce a message in each relevant logging channel and confirm its visible destination.
+- Generate a map into a separate directory, load it, and verify the editor entry path.
+- Test asset replacement and determine which references need a restart.
+- Verify current preference storage and whether the earlier UI-scaling setting is still used.
+
+A clean-depot comparison is also needed before treating the local map count as a universal count for this build.
+
+## API reference
+
+The generated searchable API reference remains
+[a separate post-merge feature](https://github.com/Mastervoliumpl/sanctuary-unit-db/issues/7).
+This snapshot reports annotation locations and counts; it does not publish extracted API signatures or descriptions.
+
+## Recording later findings
+
+Correct build-specific statements in this snapshot when new evidence supports them. Add another snapshot for
+a later game build, and preserve the older URLs. Record whether each finding came from file inspection,
+managed code, or a runtime test.

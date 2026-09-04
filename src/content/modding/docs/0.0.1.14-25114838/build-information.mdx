@@ -1,0 +1,35 @@
+---
+title: Inspected game build
+description: Build identity, evidence, and research limits for Steam build 25114838.
+navTitle: Build information
+---
+
+# Inspected game build
+
+<Lead>
+  These pages describe the exact installed build listed below. They do not update or replace the evidence
+  recorded for build 25019767.
+</Lead>
+
+## Build details
+
+<SnapshotDetails />
+
+## Evidence
+
+The Steam app manifest identifies build 25114838. Unity's `globalgamemanagers` identifies game version
+0.0.1.14 and Unity 6000.3.22f1; the `UnityPlayer.dll` product version independently matches that Unity release.
+
+The inspection counted files under the Lua, Gamedata, and Maps directories and checked the bootstrap, import
+resolver, generated API annotations, map-generator README, debug configuration, and selected managed classes.
+Assembly inspection used ILSpy on this build's `Trebuchet.dll`.
+
+## Limits of this snapshot
+
+The inspected installation also contains third-party loader files outside the counted content directories.
+Those files are not evidence of a loader shipped by the game. The inventory describes this installation;
+it was not compared against a freshly downloaded Steam depot.
+
+The two inspected bootstrap copies, in `LJ/lua` and `Sanctuary_Data/StreamingAssets`, are byte-identical.
+Code paths were inspected statically. No new game launch, mod activation, multiplayer session, or map generation
+was performed for this snapshot. See [research status](./research) for the remaining runtime checks.

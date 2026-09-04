@@ -1,0 +1,43 @@
+---
+title: Modding the inspected playtest
+description: Scope and first steps for game 0.0.1.14, Steam build 25114838.
+navTitle: Start here
+---
+
+# Modding the inspected playtest
+
+<Lead>
+  This snapshot describes game 0.0.1.14 on Unity 6000.3.22f1. It records Lua, template, asset, map, and
+  logging findings from build 25114838. The earlier build remains available in the version selector.
+</Lead>
+
+<Callout title="Keep simulation tests coordinated" warning>
+  A client with a different Lua hash is rejected before joining. Templates are outside that hash and can
+  desynchronize a running simulation. Test changes offline first, then use identical files on every test
+  machine.
+</Callout>
+
+## What changed in this inspection
+
+The Lua tree contains 590 Lua files and 367 loose templates. The generated API files contain 442 client functions
+and 253 host functions. The logging settings now cover thirteen channels through `EM.Logging`; the earlier
+artist-log setting is absent from this build's configuration.
+
+The [build information](./build-information) explains the inspection limits. The [system page](./system) records
+the counted directories, so these numbers are not mistaken for a universal inventory of user-installed content.
+
+## Choose a starting point
+
+- [Lua overview](./lua/overview): runtime, editor annotations, and the multiplayer hash.
+- [Import and reload](./lua/import): replacement and append resolution.
+- [Asset overrides](./assets): search paths and archive lookup.
+- [Map tools](./maps): the inspected map inventory and generator documentation.
+- [Debug settings](./debug): current log destinations and thresholds.
+- [Managed code](./managed): what assembly inspection establishes.
+
+## Test a small change
+
+Copy the original file, make one change, and run an offline test. Record the result and restore the file before
+testing another change. Keep untested behavior separate from findings visible in the shipped files.
+
+This is community research, not official documentation from Enhearten Media.

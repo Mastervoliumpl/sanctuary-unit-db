@@ -1,0 +1,56 @@
+---
+title: Lua runtime, APIs, and templates
+description: Lua source locations, generated annotations, sandbox behavior, and hashing in build 25114838.
+navTitle: Lua overview
+---
+
+# Lua runtime, APIs, and templates
+
+<Lead>
+  The inspected Lua tree contains 590 Lua files and 367 loose .santp templates. Host and client states expose
+  different engine functions, so check the corresponding generated annotations before using an interface.
+</Lead>
+
+## Source locations
+
+<Paths>
+  <code>engine\LJ\lua\client\generated\doc\engineFunctions.lua</code>
+  <code>engine\LJ\lua\host\generated\doc\engineFunctions.lua</code>
+  <code>engine\LJ\lua\.luarc.json</code>
+</Paths>
+
+Each function file has an adjacent `engineClasses.lua`. Other source groups include `common`, `AI`,
+`maps`, `documentation`, and `examples`.
+
+## Generated interface inventory
+
+The client function file declares 442 `Engine.* = function(...)` entries and the host file declares 253.
+These counts describe the generated annotation files, not unique functions available in both states.
+The managed `LuaGeneratedDelegateTypes` list contains 667 delegate-type entries.
+
+Use the shipped annotations locally for editor assistance. A hosted searchable API remains
+[a separate feature](https://github.com/Mastervoliumpl/sanctuary-unit-db/issues/7).
+
+## Editor and sandbox
+
+Open `engine\LJ\lua` as the editor workspace so Lua Language Server can read `.luarc.json`. It selects
+LuaJIT and disables the general `io`, `os`, `debug`, and `ffi` definitions.
+
+The runtime bootstrap is more specific than those editor switches: it retains selected clock/date functions,
+debug helpers, and JIT controls. It removes arbitrary file/process access and raw FFI access when sandboxing is
+enabled. The `load` and `loadstring` wrappers force text mode. The inspected Build.json enables the sandbox.
+
+## Multiplayer Lua hash gate
+
+`FilesCache.ComputeLuaHash` takes the cached Lua paths relative to the engine directory, converts separators
+to slashes, lowercases the paths, and sorts them ordinally. It hashes each normalized path and its bytes with
+xxHash3-128. The host stores the required hash as `requiredLuaHash`; host and client exchange the hash along
+with the application version.
+
+`LobbyManager` rejects a version or hash mismatch with "Incompatible game version." Its shortened lobby
+version also includes the hash. All Lua edits must therefore match across the participating installations.
+
+The hash filter includes only `.lua`, not `.santp`. Template edits can pass the join gate and later
+desynchronize a simulation. The inspected configuration enables the desync asserter.
+
+Read [Import and reload](./import) before changing the source tree.

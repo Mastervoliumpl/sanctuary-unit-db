@@ -1,0 +1,35 @@
+---
+title: PlayerPrefs and registry settings
+description: Preference keys confirmed in the managed code of build 25114838.
+navTitle: PlayerPrefs
+---
+
+# PlayerPrefs and registry settings
+
+<Lead>
+  These preference keys were confirmed in managed code. Their current per-user values were not read or
+  exported for this snapshot.
+</Lead>
+
+## Confirmed keys
+
+`TCPConnectionInterface` reads and writes:
+
+- `client.hostIpaddress`: host address, with a loopback default.
+- `client.hostPort`: destination port, default 7980.
+- `host.listenPort`: listening port, default 7980.
+- `client.playerName`: the player's saved connection name.
+
+The setters sanitize these values. Prefer the game's UI to editing serialized data directly.
+
+`MapManager` reads and writes `SelectedMapPath`. A command-line map override can take precedence over the
+stored selection.
+
+## Storage and scope
+
+Unity metadata still identifies the company as Enhearten Media PTY and the product as Sanctuary. The earlier
+Windows registry location is a useful starting point, but this inspection did not verify the current user's
+registry storage or the earlier UI-scaling key.
+
+If testing a preference change, record its type and original value and restore it afterwards. Treat these keys
+as build-specific implementation details, not a supported configuration API.

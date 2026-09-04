@@ -1,0 +1,63 @@
+---
+title: System and file layout
+description: Runtime stack and directory-scoped file counts in the inspected build 25114838 installation.
+navTitle: System overview
+---
+
+# System and file layout
+
+<Lead>
+  The installed player uses Unity 6000.3.22f1 with managed game code in Trebuchet.dll. Mono runtime files,
+  Unity Entities, and Burst assemblies are present alongside the Lua runtime.
+</Lead>
+
+## Runtime and source paths
+
+<Paths>
+  <code>engine\Sanctuary_Data\Managed\Trebuchet.dll</code>
+  <code>engine\LJ\lua\bootstrap.lua</code>
+  <code>engine\Sanctuary_Data\StreamingAssets\bootstrap.lua</code>
+  <code>engine\Sanctuary_Data\Resources\Editor\Debug\Build.json</code>
+</Paths>
+
+The bootstrap copies match in this inspection. The Lua tree includes `AI`, `client`, `common`,
+`documentation`, `examples`, `host`, `jit`, and `maps` directories. Host and client generated interfaces
+remain separate.
+
+## Counted content
+
+<Inventory>
+  <article>
+    <strong>590</strong>
+    <span>Lua files</span>
+    <small>Under engine\LJ\lua</small>
+  </article>
+  <article>
+    <strong>367</strong>
+    <span>Loose templates</span>
+    <small>.santp under engine\LJ\lua</small>
+  </article>
+  <article>
+    <strong>8</strong>
+    <span>Asset archives</span>
+    <small>.sanpack under Sanctuary_Data\Gamedata</small>
+  </article>
+  <article>
+    <strong>99</strong>
+    <span>Inspected map files</span>
+    <small>28 named and 71 generated</small>
+  </article>
+</Inventory>
+
+The map count covers `engine\Sanctuary_Data\Maps`, including its subdirectories. The generated set has
+`~FFA-` and `~TEAM-` prefixes. These are counts from the inspected installation, not a claim that every
+installation has the same maps. They do not establish that 51 maps were removed since the earlier snapshot.
+
+The loose-template count excludes templates inside archives. `FilesCache.CreateFileCache` also reads selected
+template/decal data from `Environment.sanpack` and UI data from `UI.sanpack`.
+
+## Mod directories
+
+The asset loader still has installation and user Mods search paths. The installation-local
+`Sanctuary_Data\Mods` directory was absent; create it before testing that path.
+See [asset overrides](./assets) for precedence.

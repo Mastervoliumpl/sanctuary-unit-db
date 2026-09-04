@@ -1,0 +1,37 @@
+---
+title: Import, replacement, and reload
+description: Static inspection of module lookup, append patches, caching, and reload behavior in build 25114838.
+navTitle: Import and reload
+---
+
+# Import, replacement, and reload
+
+<Lead>
+  The current import resolver still uses an ordered Mods_Active list. The checked file contains only the
+  base-game "/" entry; a complete user-facing activation workflow was not tested.
+</Lead>
+
+## Replacement and append lookup
+
+The resolver scans active mod paths in reverse order for a replacement. It then searches for append patches
+from the winning replacement position onward. Replacement files use the mod root; append patches use a literal
+`append/` prefix.
+
+The file's header comment still describes separate Append and Replace folders. Follow the implemented paths,
+not that comment.
+
+## Module environment and caching
+
+An imported module receives its own environment with a fallback to `_G`. Values intended for callers are
+stored in that environment. The resolver keeps file information and dependency records to support cached
+imports and reload tracking.
+
+The import library defines `Import` and tracks dependencies for reloads. File-watcher support exists in
+managed code but is disabled in the inspected Build.json.
+
+## What remains untested
+
+The mod ordering/activation flow and replacement/append behavior need an end-to-end test with a small sample.
+Do not infer that adding a directory makes the game activate it automatically.
+
+Lua changes also affect the [multiplayer hash gate](./overview#multiplayer-lua-hash-gate).
