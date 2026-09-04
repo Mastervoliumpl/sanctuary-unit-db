@@ -28,6 +28,7 @@ the counted directories, so these numbers are not mistaken for a universal inven
 
 ## Choose a starting point
 
+- [Modding changelog](./changelog): developer release context, inspected differences, and compatibility limits.
 - [Lua overview](./lua/overview): runtime, editor annotations, and the multiplayer hash.
 - [Import and reload](./lua/import): replacement and append resolution.
 - [Asset overrides](./assets): search paths and archive lookup.
@@ -36,6 +37,9 @@ the counted directories, so these numbers are not mistaken for a universal inven
 - [Managed code](./managed): what assembly inspection establishes.
 
 ## Test a small change
+
+The [runtime checks](./runtime-tests) start with replay recording and settings persistence, and include a
+short template for reporting results.
 
 Copy the original file, make one change, and run an offline test. Record the result and restore the file before
 testing another change. Keep untested behavior separate from findings visible in the shipped files.

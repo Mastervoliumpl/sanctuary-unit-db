@@ -6,6 +6,7 @@
     "start",
     "build-information",
     "system",
+    "changelog",
     "---Lua---",
     "...lua",
     "---Game content---",
@@ -15,6 +16,7 @@
     "debug",
     "playerprefs",
     "managed",
+    "runtime-tests",
     "research"
   ]
 }

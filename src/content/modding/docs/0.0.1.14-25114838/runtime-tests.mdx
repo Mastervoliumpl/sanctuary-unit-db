@@ -1,0 +1,94 @@
+---
+title: Runtime checks and reporting
+description: Controlled replay, settings, and disconnection checks for the inspected build, with a result template.
+navTitle: Runtime checks
+---
+
+# Runtime checks and reporting
+
+<Lead>
+  These are proposed checks for build 25114838, not completed tests. Start with the two baseline checks below.
+  They use the game's UI and do not require a decompiled project.
+</Lead>
+
+## Record the test environment
+
+Confirm the installed Steam build before each session; an automatic update changes the scope of the result.
+Record the displayed game version, map, test time, and whether loaders or modified files are present. A
+modified installation is a valid test environment when labelled; it does not establish stock behavior.
+
+Preserve logs and any replay before the next launch, because some logs are opened with truncation enabled.
+On Windows, the developer announcement places persistent data beneath
+`%USERPROFILE%\AppData\LocalLow\Enhearten Media PTY\Sanctuary`. Use the actual folder created by your game.
+Share relevant messages and values, with personal paths, player names, and connection details redacted.
+
+## Test 1: Record and replay an unchanged session
+
+1. Start a short offline match on a known map, perform a few recognizable orders, and end it normally.
+2. Check whether a new `.sanreplay` appeared in the persistent-data `Replays` directory. Record its filename,
+   timestamp, and size; use a neutral filename in the report if the original contains private information.
+3. Open the game's replay list and select that recording without changing the game files.
+4. Record whether playback starts and reproduces the recognizable orders. Try Page Up and Page Down and
+   note whether playback speed changes.
+
+The developer reports automatic recording and those speed controls. The inspected code identifies the file
+path and version comparison; this test checks the visible behavior. A missing file, disabled entry, load
+error, or playback divergence is a result to record, not a reason to alter the replay header.
+
+## Test 2: Save and restore UI scale
+
+1. Record the current UI scale shown in Settings. Preserve a copy of `userSettings.json` if it exists.
+2. Change only UI scale to another value offered by the menu and apply it. Leave the resolution unchanged
+   so the reported resolution/box-selection issue does not confound this check.
+3. Exit normally. Check whether `userSettings.json` contains the corresponding `uiScale` value, then restart
+   and check the menu value and visible scale.
+4. Restore the original scale through the menu, exit, and verify the original value persists.
+
+Code inspection predicts JSON persistence. Report the menu value, saved value, and value after restarting.
+The full settings file is unnecessary. If the original configuration is not restored through the UI, close
+the game before restoring your saved copy.
+
+## Optional: Replay list after a Lua-only change
+
+Use a disposable or backed-up test installation and the successful baseline recording from Test 1. This
+check changes the Lua hash, so keep the session offline.
+
+1. Close the game. Back up `engine\LJ\lua\host\commands.lua` outside the Lua tree and record its SHA-256.
+2. Append only a Lua comment on a new line, preserving the file's encoding. Do not change executable code.
+3. Launch and inspect the baseline recording in the replay list. Record whether its entry is disabled and
+   the exact mismatch message. Do not bypass the disabled button or edit the replay header.
+4. Close the game, restore the original file, and verify its SHA-256 matches the backup. Relaunch and check
+   that the same recording is selectable again.
+
+The predicted result is a mismatch after the edit and restored availability after restoration. If the
+baseline fails or the installed build changes, stop the comparison and record that condition. A matching
+Lua hash does not establish template or asset compatibility.
+
+## Optional: Controlled client disconnect
+
+With a second consenting tester, use an unmodified private session on matching builds. Have the second
+client leave normally, then record the host's session message, lobby/player-list update, and whether the
+remaining session continues. Compare with the same setup before leaving.
+
+The host Lua handler updates the lobby player list and sends a session log message. This procedure checks
+that path; it does not test a network timeout, forced process termination, or every disconnection mode.
+
+## Result template
+
+Copy this template for each test. Leave the observed result empty until the test has run.
+
+```text
+Test:
+Steam build / displayed game version:
+Date and local time:
+Map / session mode:
+Loaders or modified files present:
+Baseline result:
+Exact steps performed:
+Observed result and exact message:
+Relevant log excerpt or replay filename:
+Original settings/files restored and verified:
+```
+
+Send the two baseline results first. Logging probes, mod activation, template-desync experiments, and map
+editor checks can then be scoped around what worked. Their code paths remain research findings until tested.

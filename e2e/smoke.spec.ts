@@ -268,6 +268,33 @@ test('real snapshots preserve their own logging findings and relative heading li
   await expect(page).toHaveURL(/\/lua\/overview#multiplayer-lua-hash-gate$/);
 });
 
+test('modding changelog attributes release notes and falls back in the older snapshot', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('/modding/0.0.1.14-25114838/changelog');
+  await expect(
+    page.getByRole('heading', { name: 'Release notes and modding changes', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: "FoneE's Sanctuary update thread" })).toHaveAttribute(
+    'href',
+    'https://discord.com/channels/781554164307591219/1543565008846323782/1545256895680352337',
+  );
+  await expect(page.locator('.docs-document')).toContainText('has not been independently mapped');
+  await page
+    .locator('.docs-nav')
+    .getByRole('link', { name: /Runtime checks/ })
+    .click();
+  await expect(page).toHaveURL(/\/runtime-tests$/);
+  await expect(page.locator('.docs-document')).toContainText('not completed tests');
+  await page
+    .locator('.docs-nav')
+    .getByRole('link', { name: /Modding changelog/ })
+    .click();
+  await page.getByLabel('Documentation version').selectOption('0.0.1.11-25019767');
+  await expect(page).toHaveURL(/\/0.0.1.11-25019767\/start\?versionFallback=changelog$/);
+  await expect(page.getByRole('status')).toContainText('does not contain changelog');
+  expect(errors).toEqual([]);
+});
+
 test('ladder and play pages render their shells with no database', async ({ page }) => {
   // No database is configured in this test environment, so both pages must
   // render signed-out/empty instead of crashing.

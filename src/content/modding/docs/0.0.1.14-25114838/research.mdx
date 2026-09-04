@@ -17,6 +17,10 @@ Build identity, Unity version, directory-scoped inventories, generated API count
 replacement/append lookup, asset search order, the logging channel map, and the listed PlayerPrefs keys were
 checked against this installation or its managed assembly.
 
+The [modding changelog](./changelog) adds replay identity, settings persistence, and command-path findings,
+with the developer announcement kept separate from inspected evidence. Selected classes were decompiled
+locally with ILSpy; a full project export was not needed for this pass.
+
 ## Runtime work still open
 
 - Activate a small Lua override and trace the chosen replacement and append files.
@@ -24,7 +28,11 @@ checked against this installation or its managed assembly.
 - Produce a message in each relevant logging channel and confirm its visible destination.
 - Generate a map into a separate directory, load it, and verify the editor entry path.
 - Test asset replacement and determine which references need a restart.
-- Verify current preference storage and whether the earlier UI-scaling setting is still used.
+- Verify JSON settings persistence and determine whether older UI-scale values migrate.
+- Record and play back an unchanged session, then check the replay list's Lua-hash mismatch behavior.
+
+The [runtime test handoff](./runtime-tests) gives baseline checks, optional controlled experiments, and a
+results template. No runtime result has been recorded for those procedures yet.
 
 A clean-depot comparison is also needed before treating the local map count as a universal count for this build.
 
