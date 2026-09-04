@@ -11,6 +11,7 @@ import { AlertSettings } from '../components/AlertSettings';
 import { QueueCard } from '../components/QueueCard';
 import { ReporterCard } from '../components/ReporterCard';
 import { loadMe } from '../lib/auth';
+import { signInHref } from '../lib/return-to';
 import { MODES, type Mode } from '../lib/ladder-modes';
 import { primeAudio } from '../lib/match-alert';
 import { FACTIONS, isFaction, type Faction } from '../lib/mm';
@@ -126,7 +127,7 @@ function PlayPage() {
               Sign in with your Steam account to queue. Every mode has its own rating, starting at 1000 and
               settling in over your first ten games — and you can wait in several queues at once.
             </p>
-            <a className="steam-signin big" href="/api/auth/steam">
+            <a className="steam-signin big" href={signInHref()}>
               Sign in through Steam
             </a>
           </div>

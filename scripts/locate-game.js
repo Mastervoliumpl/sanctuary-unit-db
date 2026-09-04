@@ -61,6 +61,37 @@ function steamLibraries() {
   return [...new Set(libraries)];
 }
 
+// Which build of the game the data came from. The game itself carries no
+// user-facing version (Unity's bundleVersion is a permanent "1.0"), so the
+// Steam build id is the only thing that changes with a patch — it's what
+// SteamDB shows and what the site compares against the live branch. Steam
+// keeps it in appmanifest_<appid>.acf two levels up from the install folder.
+export function steamBuild(gameDir) {
+  const steamapps = path.resolve(gameDir, '..', '..');
+  const installDir = path.basename(gameDir);
+  let manifests;
+  try {
+    manifests = fs.readdirSync(steamapps).filter((f) => /^appmanifest_\d+\.acf$/.test(f));
+  } catch {
+    return null;
+  }
+
+  const field = (text, key) => text.match(new RegExp(`"${key}"\\s*"([^"]*)"`))?.[1] ?? null;
+
+  for (const file of manifests) {
+    const text = fs.readFileSync(path.join(steamapps, file), 'utf8');
+    if (field(text, 'installdir') !== installDir) continue;
+    const updated = Number(field(text, 'LastUpdated'));
+    return {
+      appId: Number(field(text, 'appid')),
+      name: field(text, 'name'),
+      buildId: Number(field(text, 'buildid')),
+      updatedAt: updated ? new Date(updated * 1000).toISOString() : null,
+    };
+  }
+  return null;
+}
+
 // The templates live under the `prototype` build; the `engine` and `map-editor`
 // builds ship their own copies but the prototype one is what the game runs.
 // The install ships two complete Lua trees with different balance data, and 89

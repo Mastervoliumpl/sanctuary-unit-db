@@ -5,18 +5,23 @@
 // itself confirms it issued them (and consumes the nonce, killing replays).
 
 import { siteUrl } from './db';
+import { safeReturnTo } from '../lib/return-to';
 
 const STEAM_OPENID = 'https://steamcommunity.com/openid/login';
 const OPENID_NS = 'http://specs.openid.net/auth/2.0';
 const IDENTIFIER_SELECT = 'http://specs.openid.net/auth/2.0/identifier_select';
 
-export function steamLoginUrl(): string {
+// `next` is the same-site path to land on afterwards; it rides along in
+// return_to, which Steam echoes back verbatim and covers with its signature.
+export function steamLoginUrl(next?: string | null): string {
+  const returnTo = new URL(`${siteUrl()}/api/auth/steam/callback`);
+  returnTo.searchParams.set('next', safeReturnTo(next));
   const params = new URLSearchParams({
     'openid.ns': OPENID_NS,
     'openid.mode': 'checkid_setup',
     'openid.claimed_id': IDENTIFIER_SELECT,
     'openid.identity': IDENTIFIER_SELECT,
-    'openid.return_to': `${siteUrl()}/api/auth/steam/callback`,
+    'openid.return_to': returnTo.toString(),
     'openid.realm': siteUrl(),
   });
   return `${STEAM_OPENID}?${params}`;
