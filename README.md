@@ -214,13 +214,13 @@ time. Real builders keep it.
 **The install ships two complete Lua trees, and they disagree.** This caught me
 out, so read this before changing any path:
 
-|                      | `engine/LJ/lua`                                        | `prototype/RuntimeContent/Lua`          |
-| -------------------- | ------------------------------------------------------ | --------------------------------------- |
-| Balance data         | **newer** (Aug 12)                                     | older (Jul 22, untouched since install) |
-| `availableUnits.lua` | 283 entries, `OK` / `NO_MODEL` / `OK_PENDING_APPROVAL` | 270 entries, freeform notes             |
-| `canBuild` grammar   | AND, **OR and parentheses**                            | AND only                                |
-| Maps                 | 93                                                     | 0 (baked into `level0–10` scenes)       |
-| Unit models / icons  | Playtest: `Sanctuary_Data/Gamedata/*.sanpack`          | Demo: `level0–10` scenes                |
+|                      | `engine/LJ/lua`                                     | `prototype/RuntimeContent/Lua`          |
+| -------------------- | --------------------------------------------------- | --------------------------------------- |
+| Balance data         | **newer** (Aug 12)                                  | older (Jul 22, untouched since install) |
+| `availableUnits.lua` | 295 entries, `OK` / `NO_MODEL` / … `(DEMO_UI_ONLY)` | 270 entries, freeform notes             |
+| `canBuild` grammar   | AND, **OR and parentheses**                         | AND only                                |
+| Maps                 | 93                                                  | 0 (baked into `level0–10` scenes)       |
+| Unit models / icons  | Playtest: `Sanctuary_Data/Gamedata/*.sanpack`       | Demo: `level0–10` scenes                |
 
 89 of 283 units differ on cost, health or build time — the Tempest is 3000 HP in
 one and 6000 in the other. The extractor reads **`engine`** for unit data. Set

@@ -233,6 +233,11 @@ const ADJACENCY_CATEGORIES = {
 //
 //   ucl4001 = true,  -- ChosenT4Bot   -- OK
 //   uca4011 = false, -- ChosenT4Gunship -- OK_PENDING_APPROVAL
+//   ucl1201 = false, -- ChosenT1MAA     -- OK (DEMO_UI_ONLY)
+//
+// Since the 2026-09 patch the code can carry a parenthesised note — so far only
+// DEMO_UI_ONLY, which mirrors the template tag and explains why a signed-off
+// unit is still switched off in the Playtest.
 //
 // and the reason codes line up with the shipped art almost exactly: every
 // OK/OK_PENDING_APPROVAL/BONE_MISSMATCH unit has a model, and NO_MODEL units
@@ -246,11 +251,13 @@ function readAvailability(file) {
   for (const m of text.matchAll(/^\s*([a-z]{3}\d{4})\s*=\s*(true|false)\s*,?\s*(?:--\s*(.*))?$/gm)) {
     const comment = (m[3] ?? '').replace(/\s+/g, ' ').trim();
     // The comment carries the internal name, then the reason code.
-    const [internalName, reason] = comment.split(/\s+--\s+/);
+    const [internalName, reasonText] = comment.split(/\s+--\s+/);
+    const reason = reasonText?.trim().match(/^([A-Z_]+)(?:\s*\(([^)]*)\))?$/);
     map.set(m[1], {
       enabled: m[2] === 'true',
       internalName: internalName?.trim() || null,
-      reason: reason?.trim() || null,
+      reason: reason?.[1] ?? reasonText?.trim() ?? null,
+      note: reason?.[2]?.trim() || null,
     });
   }
   return map;
@@ -282,7 +289,18 @@ const REASONS = {
   BONE_MISSMATCH: 'Rigging mismatch',
   BATTLE_NO_DAMAGE: 'No damage state',
   NO_MODEL: 'No model',
+  TEMPLATE_INVALID_PREFAB: 'Invalid prefab',
 };
+const NOTES = {
+  DEMO_UI_ONLY: 'demo UI only',
+};
+
+function reasonOf(entry) {
+  if (!entry?.reason) return null;
+  const base = REASONS[entry.reason] ?? entry.reason;
+  if (!entry.note) return base;
+  return `${base} (${NOTES[entry.note] ?? entry.note})`;
+}
 
 // Three buckets, from the empirical art scan crossed with the QA flag:
 //   in-game      art exists and it is signed off and enabled
@@ -341,7 +359,7 @@ function toUnit(t, id, available, models, adjacency) {
     // in-game | in-progress | no-model
     status: statusOf(models.has(id), status),
     // Why it isn't enabled, straight from the QA tracker's reason code.
-    statusReason: REASONS[status?.reason] ?? status?.reason ?? null,
+    statusReason: reasonOf(status),
     internalName: status?.internalName ?? null,
     demoOnly: tags.includes('DEMO_UI_ONLY'),
     // What this structure grants to neighbours when built next to them.
