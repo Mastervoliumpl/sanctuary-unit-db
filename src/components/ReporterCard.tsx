@@ -1,6 +1,6 @@
 // The mod download card on the Play page: what the LadderReporter does, the
-// three ways to get it, and the install steps — same collapsed-details
-// pattern as the maps page's install help. The zips are release assets on
+// three ways to get it, and the install steps, always open (the maps page
+// uses the same box collapsed). The zips are release assets on
 // the open-source sanctuary-mods repo, so bumping a version here is the
 // whole deploy.
 
@@ -77,8 +77,8 @@ export function ReporterCard() {
         </li>
       </ul>
 
-      <details className="install">
-        <summary>How to install it</summary>
+      <div className="install install-static">
+        <h3>How to install it</h3>
         <ol>
           <li>
             Extract the zip into your Sanctuary <code>engine</code> folder, so <code>winhttp.dll</code> sits
@@ -109,7 +109,7 @@ export function ReporterCard() {
           </a>
           .
         </p>
-      </details>
+      </div>
     </div>
   );
 }
