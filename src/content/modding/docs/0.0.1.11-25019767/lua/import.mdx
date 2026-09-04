@@ -1,0 +1,49 @@
+---
+title: Import, replacement, and reload
+description: Verified replacement, append, caching, dependency, and reload behavior in common/systems/import.lua.
+navTitle: Import and reload
+---
+
+<Kicker>Lua file: common/systems/import.lua</Kicker>
+
+# Import, replacement, and reload
+
+<Lead>
+  Much of the game uses `Import` instead of ordinary Lua `require`. The implementation contains replacement,
+  append, module cache, dependency, and reload code.
+</Lead>
+
+## Replace a file
+
+An active mod can provide the same relative path as a base `.lua` or `.santp` file. If several active mods
+replace the path, the last replacement in load order wins.
+
+## Append to a file
+
+An active mod can place code at `append/<original path>`. The importer joins that text to the selected source and
+executes both in one Lua chunk. Appended code can change exported globals and refer to locals declared earlier in
+the chunk.
+
+<Callout title="The header comment is misleading" warning>
+  The comment at the top of `import.lua` describes separate Append and Replace directories. The implementation
+  instead recognizes an `append/` prefix and treats files at the mod root as replacements. Follow the code for
+  this build, not the folder names in that comment.
+</Callout>
+
+## Module behavior
+
+- The importer accepts `.lua` and `.santp` paths.
+- Each file runs in a module environment that falls back to `_G`.
+- Globals assigned by the file become fields in the returned module table.
+- Imported modules are cached, and the importer records dependencies.
+
+<Callout title="Activation is incomplete" warning>
+  The shipped `Mods_Active` list contains only `/`, which represents the base game. The dependency and
+  load-order resolver is a TODO comment. No player-facing enable or disable flow was found.
+</Callout>
+
+## Reload code is not a dependable workflow
+
+File-event processing can invalidate a changed module and its dependants. The default debug settings disable the
+file watcher, and template reload inside `OnFileChange` is commented out. Treat reload as unfinished until a
+runtime test proves otherwise.

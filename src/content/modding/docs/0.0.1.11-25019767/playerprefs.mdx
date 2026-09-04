@@ -1,0 +1,68 @@
+---
+title: PlayerPrefs and registry settings
+description: Observed Windows registry location and PlayerPrefs keys read by Steam build 25019767.
+navTitle: PlayerPrefs
+---
+
+<Kicker>Reference</Kicker>
+
+# PlayerPrefs and registry settings
+
+<Lead>
+  Unity stores the observed Windows PlayerPrefs values under the current user. Treat them as serialized
+  preferences for this build, not as a stable configuration API.
+</Lead>
+
+## Observed registry location
+
+<Paths>
+  <code>HKEY_CURRENT_USER\Software\Enhearten Media PTY\Sanctuary</code>
+</Paths>
+
+## Confirmed keys
+
+<Settings>
+  <div>
+    <dt>
+      <code>settings.uiScaling</code>
+    </dt>
+    <dd>
+      Overrides the JSON UI scale during startup; <code>SaveUIScaling</code> writes the same key.
+    </dd>
+  </div>
+  <div>
+    <dt>
+      <code>client.hostIpaddress</code>
+    </dt>
+    <dd>Stores the client host address.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>client.hostPort</code>
+    </dt>
+    <dd>Stores the client host port.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>host.listenPort</code>
+    </dt>
+    <dd>Stores the host listen port.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>SelectedMapPath</code>
+    </dt>
+    <dd>Stores the selected map path.</dd>
+  </div>
+</Settings>
+
+## Test procedure
+
+<Steps>
+  <li>Export the Sanctuary registry key.</li>
+  <li>Change one value and record its original type and data.</li>
+  <li>Restart the game and check the visible result.</li>
+  <li>Restore the exported key if the result is wrong.</li>
+</Steps>
+
+Do not assume that an unexplained value is safe or still used by the current build.

@@ -1,0 +1,70 @@
+---
+title: Lua runtime, APIs, and templates
+description: Lua source locations, generated annotations, sandbox setup, and multiplayer compatibility behavior.
+navTitle: Lua overview
+---
+
+<Kicker>Lua</Kicker>
+
+# Lua runtime, APIs, and templates
+
+<Lead>
+  Steam build 25019767 ships 702 readable Lua files and 355 readable `.santp` templates. Lua is the first
+  place to check for gameplay, AI, and data changes.
+</Lead>
+
+## Source locations
+
+<Paths>
+  <code>engine\LJ\lua\common&#92;</code>
+  <code>engine\LJ\lua\host&#92;</code>
+  <code>engine\LJ\lua\client&#92;</code>
+  <code>engine\LJ\lua\AI&#92;</code>
+  <code>engine\LJ\lua\maps&#92;</code>
+  <code>engine\LJ\lua\documentation&#92;</code>
+</Paths>
+
+## Host and client states
+
+Sanctuary creates separate Lua states for host and client work. Managed code creates a global `Engine` table and
+adds a function pointer for each delegate that applies to the active world. `bootstrap.lua` converts the pointers
+into LuaJIT FFI wrappers.
+
+`LuaGeneratedDelegateTypes` contains 646 delegate-type entries. This is not a count of simple public functions.
+It also includes host-only and client-only delegates, generated accessors, callbacks, UI operations, and memory
+helpers.
+
+## Shipped API annotations and editor setup
+
+The build already ships LuaLS annotations for the generated API:
+
+<Paths>
+  <code>engine\LJ\lua\client\generated\doc\engineFunctions.lua</code>
+  <code>engine\LJ\lua\client\generated\doc\engineClasses.lua</code>
+  <code>engine\LJ\lua\host\generated\doc\engineFunctions.lua</code>
+  <code>engine\LJ\lua\host\generated\doc\engineClasses.lua</code>
+  <code>engine\LJ\lua\.luarc.json</code>
+</Paths>
+
+The reviewed client function file contains 424 functions and the host file contains 254. The adjacent class files
+describe related types. Open `engine\LJ\lua\` as the workspace root in an editor with Lua Language Server so it
+can read `.luarc.json`. That configuration disables `io`, `os`, `debug`, and `ffi` to match the sandboxed runtime.
+
+## Sandbox limits
+
+Lua sandboxing is enabled. It restricts arbitrary file access, process execution, environment-variable access,
+and bytecode loading. Text-mode `load` and `loadstring` remain available through wrappers. Use the exported
+`Engine` API where possible.
+
+## Multiplayer Lua hash gate
+
+`EM.Lua.FilesCache.ComputeLuaHash()` sorts every `.lua` path below `engine\LJ\lua`, then hashes each path and
+file contents with xxHash3-128. The host publishes the result as `requiredLuaHash`. A client with another hash is
+rejected as an incompatible game version. `ShortGameVersion` also includes the hash, so incompatible clients are
+filtered from matching lobby results.
+
+`.santp` templates are not part of this Lua hash. A template change can pass the join gate and cause a real
+simulation desynchronization later. The inspected `Build.json` has `enableDesyncAsserter` set to `true`, but that
+does not make mismatched templates safe.
+
+See [Import, replacement, and reload](./import) before changing a shipped script or template.

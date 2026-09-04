@@ -1,0 +1,98 @@
+---
+title: System and file layout
+description: Runtime stack, important installation paths, and content counts for Steam build 25019767.
+navTitle: System overview
+---
+
+<Kicker>Build 25019767</Kicker>
+
+# System and file layout
+
+<Lead>
+  The playtest is a 64-bit Unity Mono build. Its managed game code, LuaJIT scripts, Burst code, and game data
+  are separate parts of the installation.
+</Lead>
+
+## Runtime stack
+
+- `Sanctuary.exe` and `UnityPlayer.dll` run Unity 2022.3.62f3.
+- `Trebuchet.dll` contains the main managed game and tool code.
+- Unity Entities and Burst implement parts of the simulation and rendering.
+- LuaJIT runs separate host and client script states.
+
+## Paths relative to the game directory
+
+<Settings fileLayout>
+  <div>
+    <dt>
+      <code>engine\Sanctuary_Data\Managed&#92;</code>
+    </dt>
+    <dd>Managed assemblies</dd>
+  </div>
+  <div>
+    <dt>
+      <code>engine\LJ\lua&#92;</code>
+    </dt>
+    <dd>Lua scripts and templates</dd>
+  </div>
+  <div>
+    <dt>
+      <code>engine\Sanctuary_Data\StreamingAssets\bootstrap.lua</code>
+    </dt>
+    <dd>Lua startup source</dd>
+  </div>
+  <div>
+    <dt>
+      <code>engine\Sanctuary_Data\Gamedata&#92;</code>
+    </dt>
+    <dd>Base game assets</dd>
+  </div>
+  <div>
+    <dt>
+      <code>engine\Sanctuary_Data\Maps&#92;</code>
+    </dt>
+    <dd>Installed maps</dd>
+  </div>
+  <div>
+    <dt>
+      <code>engine\Sanctuary-Map-Generation&#92;</code>
+    </dt>
+    <dd>Map-generation tools</dd>
+  </div>
+</Settings>
+
+## Content inventory
+
+<Inventory>
+  <article>
+    <strong>702</strong>
+    <span>Lua files</span>
+    <small>
+      Under <code>engine\LJ\lua</code>
+    </small>
+  </article>
+  <article>
+    <strong>355</strong>
+    <span>Template files</span>
+    <small>
+      <code>.santp</code> under <code>engine</code>
+    </small>
+  </article>
+  <article>
+    <strong>8</strong>
+    <span>Asset archives</span>
+    <small>
+      <code>.sanpack</code> under <code>engine</code>
+    </small>
+  </article>
+  <article>
+    <strong>150</strong>
+    <span>Map files</span>
+    <small>
+      79 named and 71 generated <code>.sanmap</code> files
+    </small>
+  </article>
+</Inventory>
+
+The generated map set contains 71 `~FFA-*` and `~TEAM-*` files. All counts are scoped to Steam build 25019767
+and can change after a game update.

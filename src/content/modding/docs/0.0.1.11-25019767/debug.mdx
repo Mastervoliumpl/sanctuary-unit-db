@@ -1,0 +1,130 @@
+---
+title: Debug settings, logs, and launch flags
+description: Build.json settings, Lua developer logs, and confirmed command-line parser inputs.
+navTitle: Debug settings
+---
+
+<Kicker>Reference</Kicker>
+
+# Debug settings, logs, and launch flags
+
+<Lead>
+  The player build loads a JSON configuration for logging, Lua, rendering, camera behavior, pathfinding,
+  collision, internal visualizations, and quick launch.
+</Lead>
+
+## Configuration file
+
+<Paths>
+  <code>engine\Sanctuary_Data\Resources\Editor\Debug\Build.json</code>
+</Paths>
+
+This snapshot enables the Lua sandbox, desync asserter, and pathfinding. It disables the file watcher and quick
+launch. Copy the file before editing it because Steam can replace installation files.
+
+## Lua and artist logs
+
+<Paths>
+  <code>engine\game_logs\LogsForLuaDevs.txt</code>
+  <code>engine\game_logs\LogsForArtists.txt</code>
+</Paths>
+
+Both files are truncated when the game launches. Copy useful output before restarting. Six `Build.json` fields
+control the minimum logged level; the stock value is `4` for each field:
+
+<Settings>
+  <div>
+    <dt>
+      <code>minimumLogLevelForLua</code>
+    </dt>
+    <dd>General Lua messages.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>minimumLogLevelForHostLua</code>
+    </dt>
+    <dd>Host-state Lua messages.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>minimumLogLevelForClientLua</code>
+    </dt>
+    <dd>Client-state Lua messages.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>minimumLogLevelForHostLuaInterface</code>
+    </dt>
+    <dd>Host managed/Lua interface messages.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>minimumLogLevelForClientLuaInterface</code>
+    </dt>
+    <dd>Client managed/Lua interface messages.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>minimumLogLevelForArtists</code>
+    </dt>
+    <dd>Artist-facing messages.</dd>
+  </div>
+</Settings>
+
+## Recognized launch flags
+
+<Settings>
+  <div>
+    <dt>
+      <code>-debugSettings=&lt;file&gt;</code>
+    </dt>
+    <dd>Loads another JSON file from the Debug directory.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>-scenario=&lt;value&gt;</code>
+    </dt>
+    <dd>Selects a scenario.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>-map=&lt;value&gt;</code>
+    </dt>
+    <dd>Selects a map.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>-autoplay=&lt;true|false&gt;</code>
+    </dt>
+    <dd>Overrides automatic start.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>-showFogOfWar=&lt;true|false&gt;</code>
+    </dt>
+    <dd>Overrides fog-of-war visibility.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>-showDebugUi=&lt;true|false&gt;</code>
+    </dt>
+    <dd>
+      Sets the inverse internal <code>disableUI</code> value.
+    </dd>
+  </div>
+  <div>
+    <dt>
+      <code>-server</code>
+    </dt>
+    <dd>Starts the server-oriented launch path.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>-name=&lt;value&gt;</code>
+    </dt>
+    <dd>Sets the parsed player or server name.</dd>
+  </div>
+</Settings>
+
+These are confirmed parser inputs in Steam build 25019767. Their visible effect can depend on the active scene
+and game flow.

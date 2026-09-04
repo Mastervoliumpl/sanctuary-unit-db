@@ -1,0 +1,65 @@
+---
+title: Modding the current playtest
+description: Scope, supported modding surfaces, and a safe first workflow for the inspected Sanctuary build.
+navTitle: Start here
+---
+
+<Kicker>Game 0.0.1.11</Kicker>
+
+# Modding the current playtest
+
+<Lead>
+  The shipped build exposes readable Lua, data templates, asset override paths, map files, and debug settings.
+  Start with Lua or data. Use managed-code changes only when the shipped interfaces cannot do the job.
+</Lead>
+
+<Callout title="Keep tests offline" warning>
+  Lua changes must match the host's Lua hash before a client can join. Template changes are not covered by
+  that gate and can desynchronize a running match. Test simulation changes only with identical files on every
+  machine.
+</Callout>
+
+## Choose a surface
+
+<SurfaceList>
+  <article>
+    <span className="surface-state ready">Start here</span>
+    <h3>Lua and templates</h3>
+    <div className="surface-copy">Change gameplay scripts, AI, or unit data in readable source files.</div>
+  </article>
+  <article>
+    <span className="surface-state ready">Built in</span>
+    <h3>Asset overrides</h3>
+    <div className="surface-copy">
+      Load loose files or ZIP-based <code>.sanpack</code> archives from the Mods paths.
+    </div>
+  </article>
+  <article>
+    <span className="surface-state ready">Available</span>
+    <h3>Maps</h3>
+    <div className="surface-copy">
+      Inspect JSON-based <code>.sanmap</code> files and the included map tools.
+    </div>
+  </article>
+  <article>
+    <span className="surface-state advanced">Advanced</span>
+    <h3>Managed code</h3>
+    <div className="surface-copy">Read the Mono assembly when Lua does not expose the required behavior.</div>
+  </article>
+</SurfaceList>
+
+## Use a reversible test cycle
+
+<Steps>
+  <li>Copy the original file and record the documentation version ID.</li>
+  <li>Change one Lua value, template field, or cosmetic asset.</li>
+  <li>Run an offline test and capture the relevant log output.</li>
+  <li>Restore the original file before testing another change.</li>
+</Steps>
+
+Continue with the [Lua overview](./lua/overview), [asset overrides](./assets), or [map tools](./maps).
+
+<div className="docs-disclaimer">
+  This reference records community research. It is not Enhearten Media documentation. A game update can
+  invalidate paths, symbols, and behavior described here.
+</div>

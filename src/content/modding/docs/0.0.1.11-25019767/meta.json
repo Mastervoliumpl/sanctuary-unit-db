@@ -1,0 +1,20 @@
+{
+  "title": "0.0.1.11 · Steam 25019767",
+  "root": "version",
+  "pages": [
+    "---Getting started---",
+    "start",
+    "build-information",
+    "system",
+    "---Lua---",
+    "...lua",
+    "---Game content---",
+    "assets",
+    "maps",
+    "---Reference---",
+    "debug",
+    "playerprefs",
+    "managed",
+    "research"
+  ]
+}

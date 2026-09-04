@@ -1,0 +1,100 @@
+---
+title: Map files and included tools
+description: Installed map inventory, ExtraneousMapGen options, sanmap headers, and the compiled map editor.
+navTitle: Maps and editor
+---
+
+<Kicker>Game content</Kicker>
+
+# Map files and included tools
+
+<Lead>
+  Steam build 25019767 contains 150 `.sanmap` files: 79 named maps and 71 generated `~FFA-*` and `~TEAM-*`
+  maps. The files begin with readable JSON metadata and the installation includes a separate map generator.
+</Lead>
+
+## Installed content
+
+<Paths>
+  <code>engine\Sanctuary_Data\Maps&#92;</code>
+  <code>engine\Sanctuary-Map-Generation\README.txt</code>
+  <code>engine\Sanctuary-Map-Generation\ExtraneousMapGen.exe</code>
+</Paths>
+
+Start from a copied map. Change one field, use a distinct file name, and verify that the game lists it as a
+separate map. A complete `.sanmap` schema has not been documented.
+
+## ExtraneousMapGen
+
+The included README documents these command-line options:
+
+<Settings>
+  <div>
+    <dt>
+      <code>--help</code>
+    </dt>
+    <dd>Shows command help.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>--biomes</code>
+    </dt>
+    <dd>Lists or selects available biomes as described by the tool.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>--styles</code>
+    </dt>
+    <dd>Lists or selects generation styles.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>--seed</code>
+    </dt>
+    <dd>Sets the generation seed.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>--map-size</code>
+    </dt>
+    <dd>Sets the generated map size.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>--num-teams</code>
+    </dt>
+    <dd>Sets the number of teams.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>--spawn-count</code>
+    </dt>
+    <dd>Sets the requested spawn count.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>--folder-path</code>
+    </dt>
+    <dd>Sets the output directory.</dd>
+  </div>
+  <div>
+    <dt>
+      <code>--map-name</code>
+    </dt>
+    <dd>Sets the output map name.</dd>
+  </div>
+</Settings>
+
+The readable `.sanmap` JSON header is self-describing and includes `fileVersion`, `mapVersion`, `width`,
+`heightmapResolution`, and `waterLevel` before the remaining map data.
+
+## Compiled editor code
+
+`Trebuchet.dll` contains an `EM.MapEditor` namespace for map selection, terrain, textures, props, decals,
+symmetry, lighting, water, undo history, and save or export UI. `EM.Map.MapManager` also contains a map-editor
+world and an `IsMapEditor` state.
+
+<Callout title="The editor launch path is not confirmed" warning>
+  Code can remain in a Unity build when its scene or UI entry point is absent. The shipped scenes, resources,
+  startup condition, and generator output still need an end-to-end test.
+</Callout>

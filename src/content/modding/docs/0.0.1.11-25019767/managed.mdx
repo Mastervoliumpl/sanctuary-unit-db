@@ -1,0 +1,40 @@
+---
+title: Managed code and DLL loading
+description: What Trebuchet.dll exposes, what it does not load, and the limits of external managed patching.
+navTitle: Managed code
+---
+
+<Kicker>Reference</Kicker>
+
+# Managed code and DLL loading
+
+<Lead>
+  ILSpy can reconstruct descriptive `EM.*` classes from `Trebuchet.dll`. This makes the assembly useful for
+  research, but it does not make a custom DLL load automatically.
+</Lead>
+
+## What the assembly shows
+
+The assembly is Unity Mono code and is not broadly obfuscated. You can trace C# call paths, inspect public types,
+and find the managed side of Lua exports. Generated Burst and source-generator names are not evidence of
+intentional obfuscation.
+
+The assembly is not strong-name signed. This removes one replacement check, but it does not provide a loader or a
+compatibility guarantee.
+
+## No built-in plugin loader found
+
+A search of the exported assembly found no call to `Assembly.Load`, `Assembly.LoadFrom`, `Assembly.LoadFile`, or
+`AppDomain` code that loads arbitrary plugin assemblies. Copying a custom DLL into `Managed` or a Mods directory
+is not expected to load it.
+
+## External loaders have limits
+
+An external loader and Harmony-style patches might work for ordinary managed methods. Parts of the simulation
+use Unity DOTS and Burst direct-call wrappers. Those paths can execute native code instead of the managed fallback
+that a patcher sees.
+
+<Callout title="Before writing a loader">
+  Record the missing Lua capability and trace its managed implementation. Check whether it runs in the host or
+  client state and whether Burst compiles the call. Keep loader experiments offline.
+</Callout>

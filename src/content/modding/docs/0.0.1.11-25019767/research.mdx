@@ -1,0 +1,48 @@
+---
+title: Research status
+description: Confirmed findings, code-supported assumptions, open tests, and absent features for the inspected build.
+navTitle: Research status
+---
+
+<Kicker>Reference</Kicker>
+
+# Research status
+
+<Lead>
+  This page separates observations from working assumptions. Use snapshot `0.0.1.11-25019767` when reporting a
+  result.
+</Lead>
+
+## Confirmed in the inspected files
+
+- The build contains 702 readable Lua files and 355 readable `.santp` files.
+- Generated client and host LuaLS API annotations ship beside the Lua source.
+- The asset loader searches `Gamedata/`, installation `Mods/`, then `UserModsPath`, using `PathToID` as the override key.
+- The asset loader reads loose files and ZIP-format `.sanpack` archives.
+- The game creates separate host and client Lua states and enforces a Lua hash gate for multiplayer.
+- `.santp` files are outside the Lua hash even though template mismatches can desynchronize simulation.
+- `Trebuchet.dll` contains readable managed symbols and map-editor code.
+- `Build.json` defines debug settings used by the player build, including six Lua and artist log levels.
+- The inspected installation contains 150 `.sanmap` files and `ExtraneousMapGen.exe`.
+
+## Supported by code, not tested end to end
+
+- Replacing and appending scripts through an activated mod.
+- Loose-file and sanpack override behavior for every asset type.
+- Opening the compiled map editor and saving a valid map.
+- Using the file watcher for safe Lua reloads.
+
+## Open research tasks
+
+- Find what populates `Mods_Active`, if anything.
+- Run one harmless Lua append and one cosmetic sanpack override.
+- Identify the player-build map-editor entry condition and required scene.
+- Check current developer policy before publishing loader or multiplayer experiments.
+
+## Not found
+
+- A complete mod activation and dependency workflow.
+- A managed DLL plugin loader in the main assembly.
+- A stable public API guarantee for Lua or managed symbols.
+
+The generated Lua API data and searchable reference are deliberately deferred to post-merge issue #7.

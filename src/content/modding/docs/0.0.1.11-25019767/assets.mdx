@@ -1,0 +1,48 @@
+---
+title: Asset overrides and sanpacks
+description: Verified asset search order, override keys, loose-file loading, and sanpack archive behavior.
+navTitle: Assets and sanpacks
+---
+
+<Kicker>Game content</Kicker>
+
+# Asset overrides and sanpacks
+
+<Lead>
+  The asset loader scans base content and two Mods directories. A later path replaces an earlier entry when
+  both entries have the same `PathToID` override key.
+</Lead>
+
+## Search order
+
+<ol className="docs-path-order">
+  <li>
+    <code>engine\Sanctuary_Data\Gamedata&#92;</code>
+    <span>Base content</span>
+  </li>
+  <li>
+    <code>engine\Sanctuary_Data\Mods&#92;</code>
+    <span>Installation mods</span>
+  </li>
+  <li>
+    <code>%USERPROFILE%\Documents\My Games\Enhearten Media\Sanctuary\Mods&#92;</code>
+    <span>User mods</span>
+  </li>
+</ol>
+
+The user Mods directory has the highest priority among these paths. Both Mods paths are gated by the managed
+`AllowMods` flag, which is `true` in this snapshot. A stock installation does not contain
+`Sanctuary_Data\Mods\`; create it before testing an installation-local override.
+
+## Archive and loose-file support
+
+The loader walks each existing search directory recursively. It caches loose files and reads each file inside a
+`.sanpack` archive. A sanpack is a ZIP container whose entries retain virtual paths.
+
+Use a new archive or the user Mods directory instead of changing a shipped archive. Exact path casing,
+normalization, and references between loose files still need runtime tests.
+
+## Safe first test
+
+Replace one visible client-side asset and preserve its internal path. Record the archive path, entry path, log
+output, and whether the game needed a restart. Do not start with simulation data.
