@@ -14,7 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { FACTION_COLOURS } from '../public/icons.js';
+import { FACTION_COLOURS } from '../src/lib/faction-colours.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(here, '..', 'icons-src');

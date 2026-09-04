@@ -18,6 +18,7 @@ import { FACTION_COLOURS } from '../components/UnitIcon';
 import { UnitCard } from '../components/UnitCard';
 import { DetailPanel } from '../components/DetailPanel';
 import { HeaderSearch } from '../components/HeaderSearch';
+import { GameVersion } from '../components/GameVersion';
 
 // Filters, sort, search and the open unit all live in the URL — same param
 // names and comma-joined encoding as the pre-framework site, so shared links
@@ -141,25 +142,28 @@ function BoardPage() {
         <span>
           {shownCount} of {loaded.data.units.length} units · {visible.length} slots
         </span>
-        <label className="sortctl">
-          Order
-          <select
-            value={sort}
-            onChange={(e) =>
-              patch({ sort: e.target.value === 'default' ? undefined : (e.target.value as SortKey) })
-            }
-          >
-            <option value="default">Tech tree</option>
-            <option value="alloys">Alloy</option>
-            <option value="energy">Energy</option>
-            <option value="buildTime">Build time</option>
-            <option value="health">Health</option>
-            <option value="dps">DPS</option>
-            <option value="projectileSpeed">Projectile speed</option>
-            <option value="turnRate">Turn rate (unit)</option>
-            <option value="traverseSpeed">Turn rate (weapon)</option>
-          </select>
-        </label>
+        <div className="toolbar-controls">
+          <GameVersion game={loaded.data.meta.game} generatedAt={loaded.data.meta.generatedAt} />
+          <label className="sortctl">
+            Order
+            <select
+              value={sort}
+              onChange={(e) =>
+                patch({ sort: e.target.value === 'default' ? undefined : (e.target.value as SortKey) })
+              }
+            >
+              <option value="default">Tech tree</option>
+              <option value="alloys">Alloy</option>
+              <option value="energy">Energy</option>
+              <option value="buildTime">Build time</option>
+              <option value="health">Health</option>
+              <option value="dps">DPS</option>
+              <option value="projectileSpeed">Projectile speed</option>
+              <option value="turnRate">Turn rate (unit)</option>
+              <option value="traverseSpeed">Turn rate (weapon)</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <main className="layout">

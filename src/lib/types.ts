@@ -121,9 +121,20 @@ export interface Unit {
   tags: string[];
 }
 
+/** The Steam build the data was extracted from (from appmanifest_<appid>.acf). */
+export interface GameBuild {
+  appId: number;
+  name: string | null;
+  buildId: number;
+  /** When Steam last updated the install, ISO 8601. */
+  updatedAt: string | null;
+}
+
 export interface UnitsMeta {
   generatedAt: string;
   source: string;
+  /** Null for installs that don't live under a Steam library. */
+  game: GameBuild | null;
   unitCount: number;
   isDemo: boolean;
   dataIssues: string[];

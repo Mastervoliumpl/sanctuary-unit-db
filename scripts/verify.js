@@ -31,6 +31,9 @@ function main() {
   if (!units.length) fail('data/units.json contains no units');
 
   notes.push(`${units.length} units, extracted ${(data.meta?.generatedAt ?? '').slice(0, 10) || 'unknown'}`);
+  if (data.meta?.game) notes.push(`Steam build ${data.meta.game.buildId} (${data.meta.game.name})`);
+  else notes.push('no Steam build id recorded — the site cannot say whether the data is current');
+  if (!exists('data/version.json')) fail('missing data/version.json — re-run `npm run extract`');
   if (data.meta?.isDemo) notes.push('source is the demo build — balance values are provisional');
 
   checkIcons(units);

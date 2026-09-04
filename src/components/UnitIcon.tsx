@@ -9,13 +9,9 @@
 
 import type { Faction, UnitIconSpec } from '../lib/types';
 
-// Faction liveries, matching the in-game unit schemes.
-export const FACTION_COLOURS: Record<string, string> = {
-  EDA: '#4ad17e',
-  Chosen: '#ff5a52',
-  Guard: '#f5b52a',
-  Unknown: '#8b95a5',
-};
+import { FACTION_COLOURS } from '../lib/faction-colours';
+
+export { FACTION_COLOURS };
 
 // Column order everywhere in the UI.
 export const FACTION_ORDER: Faction[] = ['EDA', 'Chosen', 'Guard'];

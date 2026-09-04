@@ -260,6 +260,39 @@ input {
   align-items: center;
   gap: 6px;
 }
+
+/* Which Steam build the data came from; the dot says whether it's still live. */
+.gamever {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: help;
+}
+.gamever .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  opacity: 0.5;
+}
+.gamever.current .dot {
+  background: #4ad17e;
+  opacity: 1;
+}
+.gamever.stale .dot {
+  background: #f0c14b;
+  opacity: 1;
+}
+.gamever em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #f0c14b;
+}
 .sortctl select {
   background: var(--bg-raised);
   border: 1px solid var(--border);

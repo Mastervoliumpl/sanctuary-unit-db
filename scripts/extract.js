@@ -5,10 +5,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseLuaTable } from './lua-parser.js';
-import { locateGame, contentRoot } from './locate-game.js';
+import { locateGame, contentRoot, steamBuild } from './locate-game.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OUT_FILE = path.join(here, '..', 'public', 'data', 'units.json');
+const VERSION_FILE = path.join(here, '..', 'public', 'data', 'version.json');
 
 // Third character of the template id encodes the domain, second the faction.
 const FACTIONS = { e: 'EDA', c: 'Chosen', g: 'Guard', w: 'Guard' };
@@ -50,6 +51,10 @@ function main() {
   const { root: lua, tree } = contentRoot(gameDir);
   console.log(`game:      ${gameDir}`);
   console.log(`tree:      ${tree}  (unit data; art always comes from prototype)`);
+  const build = steamBuild(gameDir);
+  console.log(
+    `build:     ${build ? `${build.buildId} (${build.name}, installed ${build.updatedAt})` : 'unknown — not under a Steam library'}`,
+  );
 
   const available = readAvailability(path.join(lua, 'common', 'units', 'availableUnits.lua'));
   const adjacency = readAdjacencyBuffs(path.join(lua, 'host', 'systems', 'adjacencyBuffs.lua'));
@@ -85,10 +90,17 @@ function main() {
 
   resolveBuildTrees(units);
 
+  const game = build;
+  if (!game) issues.push('no Steam appmanifest next to the install — build id unknown');
+
   const payload = {
     meta: {
       generatedAt: new Date().toISOString(),
       source: path.basename(gameDir),
+      // The Steam build this was extracted from, so the site can say whether
+      // it still matches the live branch. Null when the game isn't under
+      // steamapps (a copied install).
+      game,
       unitCount: units.length,
       // Surfaced in the UI so nobody mistakes demo balance for release balance.
       isDemo: /demo/i.test(path.basename(gameDir)),
@@ -100,6 +112,22 @@ function main() {
 
   fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
   fs.writeFileSync(OUT_FILE, JSON.stringify(payload));
+  // A few hundred bytes the /api/game-version route can bundle, so it can
+  // answer "is the database current?" without shipping every unit to the
+  // server function.
+  fs.writeFileSync(
+    VERSION_FILE,
+    JSON.stringify(
+      {
+        generatedAt: payload.meta.generatedAt,
+        source: payload.meta.source,
+        unitCount: payload.meta.unitCount,
+        game,
+      },
+      null,
+      2,
+    ) + '\n',
+  );
 
   report(units, failures, payload);
 }
@@ -233,6 +261,11 @@ const ADJACENCY_CATEGORIES = {
 //
 //   ucl4001 = true,  -- ChosenT4Bot   -- OK
 //   uca4011 = false, -- ChosenT4Gunship -- OK_PENDING_APPROVAL
+//   ucl1201 = false, -- ChosenT1MAA     -- OK (DEMO_UI_ONLY)
+//
+// Since the 2026-09 patch the code can carry a parenthesised note — so far only
+// DEMO_UI_ONLY, which mirrors the template tag and explains why a signed-off
+// unit is still switched off in the Playtest.
 //
 // and the reason codes line up with the shipped art almost exactly: every
 // OK/OK_PENDING_APPROVAL/BONE_MISSMATCH unit has a model, and NO_MODEL units
@@ -246,11 +279,13 @@ function readAvailability(file) {
   for (const m of text.matchAll(/^\s*([a-z]{3}\d{4})\s*=\s*(true|false)\s*,?\s*(?:--\s*(.*))?$/gm)) {
     const comment = (m[3] ?? '').replace(/\s+/g, ' ').trim();
     // The comment carries the internal name, then the reason code.
-    const [internalName, reason] = comment.split(/\s+--\s+/);
+    const [internalName, reasonText] = comment.split(/\s+--\s+/);
+    const reason = reasonText?.trim().match(/^([A-Z_]+)(?:\s*\(([^)]*)\))?$/);
     map.set(m[1], {
       enabled: m[2] === 'true',
       internalName: internalName?.trim() || null,
-      reason: reason?.trim() || null,
+      reason: reason?.[1] ?? reasonText?.trim() ?? null,
+      note: reason?.[2]?.trim() || null,
     });
   }
   return map;
@@ -282,7 +317,18 @@ const REASONS = {
   BONE_MISSMATCH: 'Rigging mismatch',
   BATTLE_NO_DAMAGE: 'No damage state',
   NO_MODEL: 'No model',
+  TEMPLATE_INVALID_PREFAB: 'Invalid prefab',
 };
+const NOTES = {
+  DEMO_UI_ONLY: 'demo UI only',
+};
+
+function reasonOf(entry) {
+  if (!entry?.reason) return null;
+  const base = REASONS[entry.reason] ?? entry.reason;
+  if (!entry.note) return base;
+  return `${base} (${NOTES[entry.note] ?? entry.note})`;
+}
 
 // Three buckets, from the empirical art scan crossed with the QA flag:
 //   in-game      art exists and it is signed off and enabled
@@ -341,7 +387,7 @@ function toUnit(t, id, available, models, adjacency) {
     // in-game | in-progress | no-model
     status: statusOf(models.has(id), status),
     // Why it isn't enabled, straight from the QA tracker's reason code.
-    statusReason: REASONS[status?.reason] ?? status?.reason ?? null,
+    statusReason: reasonOf(status),
     internalName: status?.internalName ?? null,
     demoOnly: tags.includes('DEMO_UI_ONLY'),
     // What this structure grants to neighbours when built next to them.
