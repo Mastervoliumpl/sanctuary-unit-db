@@ -12,6 +12,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", ".output/public", "-l", "5174"],
       "port": 5174
+    },
+    {
+      "name": "preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".output/server/index.mjs"],
+      "port": 3000
     }
   ]
 }

@@ -5,10 +5,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseLuaTable } from './lua-parser.js';
-import { locateGame, contentRoot } from './locate-game.js';
+import { locateGame, contentRoot, steamBuild } from './locate-game.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OUT_FILE = path.join(here, '..', 'public', 'data', 'units.json');
+const VERSION_FILE = path.join(here, '..', 'public', 'data', 'version.json');
 
 // Third character of the template id encodes the domain, second the faction.
 const FACTIONS = { e: 'EDA', c: 'Chosen', g: 'Guard', w: 'Guard' };
@@ -50,6 +51,10 @@ function main() {
   const { root: lua, tree } = contentRoot(gameDir);
   console.log(`game:      ${gameDir}`);
   console.log(`tree:      ${tree}  (unit data; art always comes from prototype)`);
+  const build = steamBuild(gameDir);
+  console.log(
+    `build:     ${build ? `${build.buildId} (${build.name}, installed ${build.updatedAt})` : 'unknown — not under a Steam library'}`,
+  );
 
   const available = readAvailability(path.join(lua, 'common', 'units', 'availableUnits.lua'));
   const adjacency = readAdjacencyBuffs(path.join(lua, 'host', 'systems', 'adjacencyBuffs.lua'));
@@ -85,10 +90,17 @@ function main() {
 
   resolveBuildTrees(units);
 
+  const game = build;
+  if (!game) issues.push('no Steam appmanifest next to the install — build id unknown');
+
   const payload = {
     meta: {
       generatedAt: new Date().toISOString(),
       source: path.basename(gameDir),
+      // The Steam build this was extracted from, so the site can say whether
+      // it still matches the live branch. Null when the game isn't under
+      // steamapps (a copied install).
+      game,
       unitCount: units.length,
       // Surfaced in the UI so nobody mistakes demo balance for release balance.
       isDemo: /demo/i.test(path.basename(gameDir)),
@@ -100,6 +112,22 @@ function main() {
 
   fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
   fs.writeFileSync(OUT_FILE, JSON.stringify(payload));
+  // A few hundred bytes the /api/game-version route can bundle, so it can
+  // answer "is the database current?" without shipping every unit to the
+  // server function.
+  fs.writeFileSync(
+    VERSION_FILE,
+    JSON.stringify(
+      {
+        generatedAt: payload.meta.generatedAt,
+        source: payload.meta.source,
+        unitCount: payload.meta.unitCount,
+        game,
+      },
+      null,
+      2,
+    ) + '\n',
+  );
 
   report(units, failures, payload);
 }

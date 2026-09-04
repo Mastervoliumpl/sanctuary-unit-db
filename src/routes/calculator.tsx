@@ -17,6 +17,7 @@ import {
 import { copyText } from '../lib/clipboard';
 import type { Faction, ResourceRates, Unit } from '../lib/types';
 import { FACTION_COLOURS, FACTION_ORDER, UnitIcon } from '../components/UnitIcon';
+import { GameVersion } from '../components/GameVersion';
 
 // The whole setup lives in the URL — same params as the pre-framework site
 // (t / p / a / e, plus f for the faction lens), so a build can be shared or
@@ -233,6 +234,7 @@ function CalculatorPage() {
             : 'Build time, drain and economy planning'}
         </span>
         <span className="toolbar-controls">
+          <GameVersion game={data.meta.game} generatedAt={data.meta.generatedAt} />
           <button type="button" className="linkish" onClick={copyLink}>
             {copied ? 'Copied ✓' : 'Copy link'}
           </button>
