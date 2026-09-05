@@ -1,0 +1,72 @@
+---
+title: Release notes and modding changes
+description: Official release notes and modding changes for build 25114838.
+navTitle: Modding changelog
+---
+
+# Release notes and modding changes
+
+<Lead>Modding changes from Steam build 25019767 to 25114838, alongside the developers' release notes.</Lead>
+
+## Official changelog
+
+Read the [official changelog on the developers' Discord](https://discord.com/channels/781554164307591219/1543565008846323782/1545256895680352337).
+
+The update adds automatic replays, revised AI, core UI and settings changes, in-game chat, targeting and
+audio improvements, and balance changes. Its technical notes cover Unity 6000, an updated LuaJIT, a new
+logger and command system, client-disconnection information in Lua, instance parenting, and visual rotators.
+The developers also report faster Lua execution and memory-bounded desync checks.
+
+Replays support one-direction playback with **Page Up / Page Down** speed controls. The announcement lists
+unfinished lobby UI, units getting stuck inside buildings when starting projects, and box selection breaking
+after a resolution change until restart among the known issues.
+
+## Changes for modders
+
+These changes compare the [previous snapshot](../0.0.1.11-25019767/build-information) with the
+[current build's files and managed code](./build-information#evidence).
+
+- **Runtime:** Unity `2022.3.62f3` → `6000.3.22f1`. Check Unity-dependent tooling against the new player.
+- **Logging:** minimum-level settings increased from **6 to 13** through `EM.Logging`.
+  `minimumLogLevelForArtists` was removed from `Build.json`; the current channel map assigns no writer to
+  `LogsForArtists.txt`. See [logging details](./debug).
+- **Lua files:** **702 → 590**, a decrease of **112 files** under `engine\LJ\lua`.
+  [Remmy independently confirmed this change](https://github.com/Remmyboy/sanctuary-unit-db/pull/1#pullrequestreview-5117900656).
+- **Loose templates:** **355 → 367** `.santp` files, an increase of **12**.
+- **Generated interfaces:** client function entries **424 → 442**, host function entries **254 → 253**,
+  and managed delegate entries **646 → 667**. See [annotation locations](./lua/overview#source-locations).
+
+The asset inventory remains at **8** `.sanpack` archives. The [system overview](./system) lists content
+counts and paths.
+
+## Replay compatibility includes the Lua hash
+
+The [developers' replay warning](https://discord.com/channels/781554164307591219/1543565008846323782/1545256895680352337):
+
+> _a replay can only be played back on the exact version of the engine that recorded it._
+
+`EM.Network.Replay.ReplayFile` writes `.sanreplay` files beneath `Application.persistentDataPath/Replays`.
+The recorded game identity combines the application version with the **Lua hash**.
+`EM.UI.ReplayListInterface` compares this identity with the running game and disables the selection button
+for a mismatch. `ReplayClientSockets` separately checks the replay format version.
+
+Changing Lua can therefore make a replay unavailable through the replay list even on the same Steam build.
+The hash covers `.lua` paths and contents; `.santp` templates remain outside it. See the
+[Lua hash implementation](./lua/overview#multiplayer-lua-hash-gate).
+
+## Settings have a JSON persistence path
+
+`EM.GameUtils.UserSettings` loads and saves `userSettings.json` beneath `Application.persistentDataPath`.
+Its `uiScale` and `iconScale` values are clamped to **0.5–1.75** when loaded. The settings UI applies these values.
+
+Use the settings menu to adjust UI scale. The [connection and map preferences](./playerprefs) continue to
+use PlayerPrefs.
+
+## Command and disconnection handling
+
+`host/commands.lua` handles an engine disconnection command by updating the lobby player list and sending
+a session log message. Other incoming commands use the shared command registry. The managed command queue
+also includes an instance-parenting command path.
+
+These are the source locations for the command and disconnection features described in the official changelog.
+See [managed code](./managed) for the assembly and [Lua source locations](./lua/overview#source-locations).

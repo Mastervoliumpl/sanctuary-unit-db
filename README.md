@@ -54,6 +54,34 @@ Corrections to an old snapshot should stay scoped to what was true for that
 inspected build; new game behavior belongs in a new snapshot. Unit tests reject
 missing metadata, broken internal links, duplicate builds, and navigation drift.
 
+### Modding documentation layout and writing
+
+Use the existing snapshot as the starting layout for the next one. Keep section order,
+headings, and components consistent across equivalent pages. Update established facts
+when evidence shows a change; retain confirmed findings and their sources when a check
+is incomplete. Preserve older snapshots unless correcting a demonstrated error in that build.
+
+| Content                              | Component or format                  | Convention                                                                                                   |
+| ------------------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Page introduction                    | `Lead`                               | One short paragraph describing the page.                                                                     |
+| Build identity                       | `SnapshotDetails`                    | Read values from snapshot metadata; `announcementVersion` holds the developer's release label when supplied. |
+| File and directory locations         | `Settings fileLayout`                | Path in `dt`, purpose in `dd`; use paths relative to the game directory.                                     |
+| Configuration keys                   | `Settings`                           | Key in `dt`, value and effect in `dd`.                                                                       |
+| Content counts                       | `Inventory`                          | Keep the Lua, template, archive, and map tiles in that order. Give units and counting scope.                 |
+| Runtime architecture                 | Bulleted list                        | Keep the Runtime stack section on System overview.                                                           |
+| Standalone copyable path             | `Paths`                              | Reserve for a path without an accompanying description; location references use the table above.             |
+| Topic entry points                   | `SurfaceList`                        | Linked topic summaries.                                                                                      |
+| Procedures                           | `Steps` or numbered list             | Public, reusable instructions. Keep contributor test assignments and result templates in local notes.        |
+| Warning or operational note          | `Callout`                            | Use for consequences a reader needs before acting.                                                           |
+| Direct quotation                     | Markdown blockquote with italic text | Preserve the exact words and place an attributed source link beside the quote.                               |
+| Code references and measured changes | Inline code and selective bold       | Code for paths, functions, classes, keys, and versions; bold for key counts and deltas.                      |
+
+Link factual claims to the relevant review, official announcement, or source explanation.
+Name the function or class for assembly findings. Keep paraphrases in ordinary prose and
+state changes directly, for example “Lua files: 702 → 590.” Place the official changelog
+link before its summary. Publish findings and reusable reference material; keep personal
+test checklists, handoff instructions, and environment notes outside the site.
+
 ## Publishing maps
 
 `/maps` lists community maps. The zips are not in the repo — each map is a

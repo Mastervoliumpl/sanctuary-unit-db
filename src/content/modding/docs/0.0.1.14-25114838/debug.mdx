@@ -1,0 +1,63 @@
+---
+title: Debug settings, logs, and launch flags
+description: The EM.Logging channel settings and confirmed launch parser in build 25114838.
+navTitle: Debug settings
+---
+
+# Debug settings, logs, and launch flags
+
+<Lead>
+  This build uses EM.Logging channel thresholds. The settings and log destinations differ from the older
+  snapshot, even though the stock numeric threshold remains 4.
+</Lead>
+
+## Configuration
+
+<Settings fileLayout>
+  <div>
+    <dt>
+      <code>engine\Sanctuary_Data\Resources\Editor\Debug\Build.json</code>
+    </dt>
+    <dd>Debug and logging configuration</dd>
+  </div>
+</Settings>
+
+The inspected file enables sandboxing, pathfinding, and the desync asserter. File watching and quick launch are
+disabled. Copy configuration files before editing; a Steam update can replace them.
+
+## Thresholds and channels
+
+`EM.Logging.LogLevel` defines Verbose = 0, Debug = 1, Info = 2, Warning = 3, Error = 4, and Fatal = 5.
+The logging code discards messages below a channel's minimum. Stock threshold 4 records errors and fatals;
+lower it to 2 for informational output or 0 for the most verbose output.
+
+The current configuration contains these thirteen fields:
+
+- `minimumLogLevelForLua`, `minimumLogLevelForEngine`
+- `minimumLogLevelForHostLua`, `minimumLogLevelForClientLua`
+- `minimumLogLevelForHostLuaInterface`, `minimumLogLevelForClientLuaInterface`
+- `minimumLogLevelForEngineInitialisation`, `minimumLogLevelForMovement`
+- `minimumLogLevelForVFX`, `minimumLogLevelForAudio`
+- `minimumLogLevelForUI`, `minimumLogLevelForNetwork`, `minimumLogLevelOther`
+
+All thirteen are 4 in the inspected file. `minimumLogLevelForArtists` is absent.
+
+## Where messages go
+
+The current `LogManaged` configuration writes the general Lua channel to
+`engine\game_logs\LogsForLuaDevs.txt`, opening it with append disabled during initialization.
+Copy useful output before restarting.
+
+Host/client Lua and interface channels have no separate file writer in that configuration. They are routed
+through Unity logging and the in-game host/client log windows. The inspected configuration assigns no channel
+writer to `LogsForArtists.txt`.
+
+These destinations were traced in code. Producing a diagnostic in each channel remains a runtime test.
+
+## Confirmed launch parser
+
+The inspected `CommandLineUtils` parser recognizes `-debugSettings=`, `-scenario=`, `-map=`,
+`-autoplay=`, `-showFogOfWar=`, and `-showDebugUi=`. Boolean arguments expect true or false.
+A custom debug filename is resolved beneath the game's Debug resource directory.
+
+The [previous snapshot](../0.0.1.11-25019767/debug) also documents `-server` and `-name` launch flags.

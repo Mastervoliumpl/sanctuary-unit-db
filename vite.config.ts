@@ -53,7 +53,9 @@ export default defineConfig(({ mode, command }) => {
           enabled: true,
           crawlLinks: true,
           filter: ({ path }) =>
-            path !== '/modding' && !MODDING_SNAPSHOTS.some((snapshot) => path === `/modding/${snapshot.id}`),
+            !path.includes('#') &&
+            path !== '/modding' &&
+            !MODDING_SNAPSHOTS.some((snapshot) => path === `/modding/${snapshot.id}`),
         },
       }),
       // Nitro packages the server for the deployment target: on Vercel it

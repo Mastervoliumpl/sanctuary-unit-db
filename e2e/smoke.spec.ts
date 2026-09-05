@@ -84,7 +84,7 @@ test('modding docs honor the versioned routing and metadata contract', async ({ 
 
   await page.goto('/modding');
   await expect(page).toHaveURL(new RegExp(`${startPath}$`));
-  await expect(page.getByRole('heading', { name: 'Modding the current playtest' })).toBeVisible();
+  await expect(page.locator('.docs-document h1')).toContainText(/Modding the (current|inspected) playtest/);
   await expect(page.getByRole('link', { name: 'Modding', exact: true })).toHaveClass(/active/);
 
   const overviewPath = `/modding/${snapshotId}/lua/overview`;
@@ -97,7 +97,7 @@ test('modding docs honor the versioned routing and metadata contract', async ({ 
   await page.goto(overviewPath);
   await expect(page.getByRole('heading', { name: 'Lua runtime, APIs, and templates' })).toBeVisible();
   await expect(page.locator('.docs-document')).toContainText('xxHash3-128');
-  await expect(page).toHaveTitle('Lua runtime, APIs, and templates | SanctuaryDB');
+  await expect(page).toHaveTitle(/Lua runtime, APIs, and templates \| Steam \d+ \| SanctuaryDB/);
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /Lua source locations/);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
@@ -171,6 +171,8 @@ test('modding docs honor the versioned routing and metadata contract', async ({ 
   await toc.getByRole('link', { name: 'Multiplayer Lua hash gate' }).click();
   await expect(page).toHaveURL(/#multiplayer-lua-hash-gate$/);
 
+  const allTitles = new Set<string>();
+  const allDescriptions = new Set<string>();
   for (const metadata of readdirSync('src/content/modding/snapshots')) {
     const snapshot = JSON.parse(
       readFileSync(join('src/content/modding/snapshots', metadata, 'snapshot.json'), 'utf8'),
@@ -186,6 +188,21 @@ test('modding docs honor the versioned routing and metadata contract', async ({ 
       expect(html).toContain('<h1');
       expect(html).not.toContain('$fumadocs_loader');
       expect(html).not.toContain('structuredData');
+      const metadata = await page.evaluate((html) => {
+        const document = new DOMParser().parseFromString(html, 'text/html');
+        return {
+          title: document.title,
+          description: document.querySelector('meta[name="description"]')?.getAttribute('content'),
+          canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href'),
+        };
+      }, html);
+      expect(metadata.canonical).toBe(`http://localhost:4173${path}`);
+      expect(metadata.title).toContain(`Steam ${snapshot.steamBuild}`);
+      expect(metadata.description).toBeTruthy();
+      expect(allTitles.has(metadata.title)).toBe(false);
+      expect(allDescriptions.has(metadata.description!)).toBe(false);
+      allTitles.add(metadata.title);
+      allDescriptions.add(metadata.description!);
     }
   }
 
@@ -231,6 +248,56 @@ test('document navigation needs no metadata server call and discloses an older s
     .click();
   await expect(page).toHaveURL(/\/build-information$/);
   expect(calls).toEqual([]);
+});
+
+test('real snapshots preserve their own logging findings and relative heading links', async ({ page }) => {
+  await page.route('**/api/game-version', (route) => route.fulfill({ json: { live: null, upToDate: null } }));
+  await page.goto('/modding/0.0.1.11-25019767/debug');
+  await expect(page.locator('.docs-document')).toContainText('minimumLogLevelForArtists');
+  await expect(page.locator('[data-freshness="older"]')).toBeVisible();
+  await page.getByLabel('Documentation version').selectOption('0.0.1.14-25114838');
+  await expect(page).toHaveURL(/\/0.0.1.14-25114838\/debug$/);
+  await expect(page.locator('.docs-document')).toContainText('EM.Logging');
+  await expect(page.locator('[data-freshness="unknown"]')).toBeVisible();
+  await page
+    .locator('.docs-nav')
+    .getByRole('link', { name: /Import and reload/ })
+    .click();
+  await expect(page).toHaveURL(/\/lua\/import$/);
+  await page.locator('.docs-document').getByRole('link', { name: 'multiplayer hash gate' }).click();
+  await expect(page).toHaveURL(/\/lua\/overview#multiplayer-lua-hash-gate$/);
+});
+
+test('modding changelog attributes release notes and falls back in the older snapshot', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('/modding/0.0.1.14-25114838/changelog');
+  await expect(
+    page.getByRole('heading', { name: 'Release notes and modding changes', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: "official changelog on the developers' Discord" }),
+  ).toHaveAttribute(
+    'href',
+    'https://discord.com/channels/781554164307591219/1543565008846323782/1545256895680352337',
+  );
+  await expect(page.locator('.docs-document blockquote em')).toContainText(
+    'a replay can only be played back on the exact version of the engine that recorded it.',
+  );
+  await expect(page.locator('.docs-nav').getByRole('link', { name: /Runtime checks/i })).toHaveCount(0);
+  expect((await page.request.get('/modding/0.0.1.14-25114838/runtime-tests')).status()).toBe(404);
+  await page
+    .locator('.docs-nav')
+    .getByRole('link', { name: /Build information/ })
+    .click();
+  await expect(page.locator('.docs-definition-grid')).toContainText('Version 118');
+  await page
+    .locator('.docs-nav')
+    .getByRole('link', { name: /Modding changelog/ })
+    .click();
+  await page.getByLabel('Documentation version').selectOption('0.0.1.11-25019767');
+  await expect(page).toHaveURL(/\/0.0.1.11-25019767\/start\?versionFallback=changelog$/);
+  await expect(page.getByRole('status')).toContainText('does not contain changelog');
+  expect(errors).toEqual([]);
 });
 
 test('ladder and play pages render their shells with no database', async ({ page }) => {

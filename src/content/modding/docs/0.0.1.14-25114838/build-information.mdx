@@ -1,0 +1,27 @@
+---
+title: Inspected game build
+description: Build identity and inspection sources for Steam build 25114838.
+navTitle: Build information
+---
+
+# Inspected game build
+
+<Lead>Build identity and source references for the modding snapshot.</Lead>
+
+## Build details
+
+<SnapshotDetails />
+
+## Evidence
+
+The Steam app manifest identifies build 25114838. Unity's `globalgamemanagers` identifies game version
+0.0.1.14 and Unity 6000.3.22f1; the `UnityPlayer.dll` product version independently matches that Unity release.
+
+The inspection counted files under the Lua, Gamedata, and Maps directories and checked the bootstrap, import
+resolver, generated API annotations, map-generator README, debug configuration, and selected managed classes.
+Assembly inspection used ILSpy on this build's `Trebuchet.dll`.
+
+## Inspection method
+
+The two inspected bootstrap copies, in `LJ/lua` and `Sanctuary_Data/StreamingAssets`, are byte-identical.
+Managed-code findings come from static inspection. See [research status](./research) for open questions.

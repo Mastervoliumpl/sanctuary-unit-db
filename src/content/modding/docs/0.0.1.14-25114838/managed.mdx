@@ -1,0 +1,35 @@
+---
+title: Managed code and DLL loading
+description: Assembly inspection and runtime limits for game 0.0.1.14 on Unity 6.
+navTitle: Managed code
+---
+
+# Managed code and DLL loading
+
+<Lead>
+  Trebuchet.dll remains readable managed code. Unity 6000.3.22f1, Mono runtime files, and Burst assemblies are
+  present in the inspected installation.
+</Lead>
+
+## Assembly evidence
+
+The assembly metadata identifies `Trebuchet` version 1.0.0.0 with no public key. That assembly version is
+not the game's displayed version: Unity metadata identifies the game as 0.0.1.14.
+
+ILSpy can resolve descriptive game types for Lua, logging, networking, assets, and map tooling. The generated
+Lua delegate list has 667 entries. Inspect this build's types before reusing offsets, signatures, or patches
+from the Unity 2022 snapshot.
+
+## Loading and patching limits
+
+The presence of readable methods does not establish that arbitrary plugin DLLs will be loaded. No managed
+plugin activation workflow was verified in this inspection.
+
+Burst-generated paths can execute native code outside an ordinary managed method. A patching approach needs
+runtime verification against the specific method and world it affects.
+
+## Research order
+
+Check the [shipped Lua interface](./lua/overview) first. If a required capability is missing, identify its
+managed implementation and whether it runs in the host or client. Keep loader and patching experiments
+separate from the verified reference until they have been tested.

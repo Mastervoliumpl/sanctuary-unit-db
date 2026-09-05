@@ -1,0 +1,59 @@
+---
+title: Map files and included tools
+description: Map file locations, generator options, and map-editor evidence for build 25114838.
+navTitle: Maps and editor
+---
+
+# Map files and included tools
+
+<Lead>
+  Maps use the .sanmap format. The game includes a separate generator with options for terrain, teams, and
+  resource placement.
+</Lead>
+
+## Locations and format
+
+<Settings fileLayout>
+  <div>
+    <dt>
+      <code>engine\Sanctuary_Data\Maps</code>
+    </dt>
+    <dd>Installed maps</dd>
+  </div>
+  <div>
+    <dt>
+      <code>engine\Sanctuary-Map-Generation\README.txt</code>
+    </dt>
+    <dd>Map-generator documentation</dd>
+  </div>
+  <div>
+    <dt>
+      <code>engine\Sanctuary-Map-Generation\ExtraneousMapGen.exe</code>
+    </dt>
+    <dd>Map generator</dd>
+  </div>
+</Settings>
+
+The [confirmed map inventory](https://github.com/Remmyboy/sanctuary-unit-db/pull/1#discussion_r3931958747)
+contains **150** `.sanmap` files: **79 named** and **71 generated** maps.
+
+Map files begin with readable JSON. The inspected named-map header uses `fileVersion` **3** and includes
+`mapVersion`, `name`, `width`, `length`, and `height`.
+
+## Generator options
+
+The shipped README distinguishes listing from selection: `--biomes` lists biomes and `--biome` selects one;
+`--styles` lists styles and `--style` selects one.
+
+It also documents `--help`, `--weights`, `--seed`, `--map-size`, `--map-detail-size`, `--num-teams`,
+`--spawn-count`, `--folder-path`, and `--map-name`. Further options cover terrain/resource densities,
+preview output, tournament/blind/unexplored modes, and generating multiple maps. Consult the installed README
+for the full option list.
+
+The generator was inspected but not run. Use a separate output directory and a distinct map name when testing it.
+
+## Editor code
+
+The assembly retains map-editor types and `MapManager.IsMapEditor`. The manager can create a map-editor
+world. An available type or method does not establish an accessible menu entry or a working editor launch
+sequence; those remain runtime research.
