@@ -34,8 +34,4 @@ managed code but is disabled in the inspected Build.json.
 The mod ordering/activation flow and replacement/append behavior need an end-to-end test with a small sample.
 Do not infer that adding a directory makes the game activate it automatically.
 
-The installed third-party ModManager can overlay cached Lua and templates in memory from `SanctuaryMods`.
-Its Mods UI and overlay behavior are separate from the on-disk import resolver described here; they do not
-establish a built-in activation workflow. See the [package provenance](../build-information#third-party-packages-excluded-from-game-findings).
-
 Lua changes also affect the [multiplayer hash gate](./overview#multiplayer-lua-hash-gate).

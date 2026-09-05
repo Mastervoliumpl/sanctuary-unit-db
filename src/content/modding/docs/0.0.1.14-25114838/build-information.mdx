@@ -24,35 +24,7 @@ The inspection counted files under the Lua, Gamedata, and Maps directories and c
 resolver, generated API annotations, map-generator README, debug configuration, and selected managed classes.
 Assembly inspection used ILSpy on this build's `Trebuchet.dll`.
 
-## Third-party packages excluded from game findings
-
-The contributor installed LadderReporter 0.2.3, ModManager 0.2.0, and the ReplayManager 0.2.0 ModManager
-add-in for testing. Their ZIP inventories and installed file hashes were checked separately from the game.
-
-- `BepInEx`, its plugin loader, `winhttp.dll`, and the Doorstop configuration are third-party loader files.
-- `SanctuaryMods/ModManager` supplies the Mods/F8 interface and Lua overlays applied in memory.
-- `SanctuaryMods/ReplayManager` supplies the enhanced replay controls, including seeking and rewinding.
-- `BepInEx/plugins/LadderReporter.dll` supplies ladder reporting and matchmaking integration.
-
-The four application plugin DLLs match their archive entries. The packages also share loader dependencies;
-their root `README.txt` files can overwrite one another. Neither the root README nor the loader configuration
-is a source for base-game documentation.
-
-None of the three ZIPs contains replacements for `Trebuchet.dll`, Unity metadata/player files, the inspected
-Lua/template tree, `Build.json`, Gamedata archives, or maps. The on-disk assembly hash still matches the earlier
-inspection. This preserves the provenance distinction for the static findings, but does not certify an
-unmodified Steam depot or rule out other local edits.
-
-Plugin code can change behavior without changing those files: ModManager overlays `FilesCache` in memory,
-ReplayManager patches replay and client-startup paths, and LadderReporter hooks matchmaking and economy
-reporting. Features observed with these plugins loaded must be reported as modified behavior. See the
-[runtime baseline procedure](./runtime-tests#separate-the-test-packages-from-the-baseline).
-
 ## Limits of this snapshot
-
-The inventory describes this installation; it was not compared against a freshly downloaded Steam depot.
-Static game findings come from the on-disk game assembly and content paths, not the separately inspected
-plugin assemblies. The named third-party features above are excluded from base-game claims.
 
 The two inspected bootstrap copies, in `LJ/lua` and `Sanctuary_Data/StreamingAssets`, are byte-identical.
 Code paths were inspected statically. No new game launch, mod activation, multiplayer session, or map generation

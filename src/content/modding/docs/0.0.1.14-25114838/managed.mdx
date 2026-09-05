@@ -23,10 +23,7 @@ from the Unity 2022 snapshot.
 ## Loading and patching limits
 
 The presence of readable methods does not establish that arbitrary plugin DLLs will be loaded. No managed
-plugin activation workflow supplied by the game was verified in this inspection. The installed ModManager
-package supplies a separate BepInEx loader and watches `SanctuaryMods` for DLLs. Its loading and hot reload
-are third-party behavior, excluded from claims about shipped game support. See the
-[package audit](./build-information#third-party-packages-excluded-from-game-findings).
+plugin activation workflow was verified in this inspection.
 
 Burst-generated paths can execute native code outside an ordinary managed method. A patching approach needs
 runtime verification against the specific method and world it affects.
