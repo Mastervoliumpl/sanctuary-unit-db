@@ -85,6 +85,12 @@ function SnapshotDetails({ snapshot }: { snapshot: ModdingSnapshot }) {
         <dt>Inspected</dt>
         <dd>{inspectedOn}</dd>
       </div>
+      {snapshot.announcementVersion && (
+        <div>
+          <dt>Developer announcement</dt>
+          <dd>{snapshot.announcementVersion}</dd>
+        </div>
+      )}
     </DefinitionGrid>
   );
 }

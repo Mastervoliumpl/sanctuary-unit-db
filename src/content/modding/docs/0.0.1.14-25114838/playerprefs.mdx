@@ -29,9 +29,8 @@ stored selection.
 
 `EM.GameUtils.UserSettings` separately reads and writes `userSettings.json` beneath
 `Application.persistentDataPath`. Its `uiScale` and `iconScale` values are constrained to 0.5–1.75 when
-loaded. Use the current settings menu for UI scale; the presence of this JSON path does not remove the
-PlayerPrefs keys listed above. See the [changelog](./changelog#settings-have-a-json-persistence-path)
-and [persistence test](./runtime-tests#test-2-save-and-restore-ui-scale).
+loaded. Use the current settings menu for UI scale. The connection and map preferences above continue
+to use PlayerPrefs. See the [changelog](./changelog#settings-have-a-json-persistence-path).
 
 Unity metadata still identifies the company as Enhearten Media PTY and the product as Sanctuary. The earlier
 Windows registry location is a useful starting point, but this inspection did not verify the current user's

@@ -1,98 +1,72 @@
 ---
 title: Release notes and modding changes
-description: Developer announcement context, inspected modding differences, and compatibility limits for build 25114838.
+description: Official release notes and modding changes for build 25114838.
 navTitle: Modding changelog
 ---
 
 # Release notes and modding changes
 
-<Lead>
-  This page compares the reviewed build 25019767 documentation with inspection of build 25114838. It also
-  summarizes the supplied developer announcement. Developer reports, static findings, and runtime results are
-  identified separately.
-</Lead>
+<Lead>Modding changes from Steam build 25019767 to 25114838, alongside the developers' release notes.</Lead>
 
-## Developer announcement
+## Official changelog
 
-[FoneE's Sanctuary update thread](https://discord.com/channels/781554164307591219/1543565008846323782/1545256895680352337)
-begins with an announcement labelled **Version 118**, posted on September 4, 2026. The summary below uses a
-contributor-supplied transcript spanning several messages; the link opens the first message and may require
-Discord access. That announcement label has not been independently mapped to internal game version 0.0.1.14
-or Steam build 25114838. Shared features alone do not establish the mapping.
+Read the [official changelog on the developers' Discord](https://discord.com/channels/781554164307591219/1543565008846323782/1545256895680352337).
 
-The developers report automatic replays, a revised AI, core UI and settings changes, in-game chat, targeting
-and audio improvements, and balance changes. For modders, the technical notes highlight Unity 6000, an updated
-LuaJIT, a new logger and command system, client-disconnection information in Lua, instance parenting, and
-visual rotators. They also report faster Lua execution and memory-bounded desync checks.
+The update adds automatic replays, revised AI, core UI and settings changes, in-game chat, targeting and
+audio improvements, and balance changes. Its technical notes cover Unity 6000, an updated LuaJIT, a new
+logger and command system, client-disconnection information in Lua, instance parenting, and visual rotators.
+The developers also report faster Lua execution and memory-bounded desync checks.
 
-The announcement says replays require the recording engine version and may become unusable after updates.
-It describes one-direction playback with Page Up/Page Down speed controls. Known issues include unfinished
-lobby UI, units getting stuck inside buildings when starting projects, and box selection breaking after a
-resolution change until restart. Those are developer reports, not results of this inspection.
+Replays support one-direction playback with **Page Up / Page Down** speed controls. The announcement lists
+unfinished lobby UI, units getting stuck inside buildings when starting projects, and box selection breaking
+after a resolution change until restart among the known issues.
 
-## Confirmed snapshot differences
+## Changes for modders
 
-The older values below come from the [reviewed 25019767 snapshot](../0.0.1.11-25019767/build-information).
-Current values come from the files and selected assembly classes listed in
-[build information](./build-information). This is a comparison of documented snapshots, not a complete
-binary or API diff.
+These changes compare the [previous snapshot](../0.0.1.11-25019767/build-information) with the
+[current build's files and managed code](./build-information#evidence).
 
-- **Runtime:** Unity 2022.3.62f3 → 6000.3.22f1. Recheck managed patches and Unity-dependent tooling against
-  this player. The upgrade alone does not prove that a particular mod or loader is broken.
-- **Logging:** the previous snapshot describes six minimum-level settings; this configuration contains
-  thirteen through `EM.Logging`. `minimumLogLevelForArtists` is absent from the inspected configuration,
-  and the current channel map assigns no writer to `LogsForArtists.txt`. See [logging details](./debug).
-- **Lua inventory:** 702 → 590 files in the inspected Lua tree. This does not identify 112 removed APIs
-  or establish which source files were removed, merged, or relocated.
-- **Loose templates:** 355 → 367 `.santp` files. Archive-resident templates are outside those counts.
-- **Generated interfaces:** client entries 424 → 442, host entries 254 → 253; managed delegate entries
-  646 → 667. Totals do not establish particular additions, removals, renames, or signature compatibility.
+- **Runtime:** Unity `2022.3.62f3` → `6000.3.22f1`. Check Unity-dependent tooling against the new player.
+- **Logging:** minimum-level settings increased from **6 to 13** through `EM.Logging`.
+  `minimumLogLevelForArtists` was removed from `Build.json`; the current channel map assigns no writer to
+  `LogsForArtists.txt`. See [logging details](./debug).
+- **Lua files:** **702 → 590**, a decrease of **112 files** under `engine\LJ\lua`.
+  [Remmy independently confirmed this change](https://github.com/Remmyboy/sanctuary-unit-db/pull/1#pullrequestreview-5117900656).
+- **Loose templates:** **355 → 367** `.santp` files, an increase of **12**.
+- **Generated interfaces:** client function entries **424 → 442**, host function entries **254 → 253**,
+  and managed delegate entries **646 → 667**. See [annotation locations](./lua/overview#source-locations).
 
-Eight Gamedata archives are present in both inventories. See the [system overview](./system) for their locations.
+The asset inventory remains at **8** `.sanpack` archives. The [system overview](./system) lists content
+counts and paths.
 
 ## Replay compatibility includes the Lua hash
 
-**Static finding.** `EM.Network.Replay.ReplayFile` writes `.sanreplay` files beneath
-`Application.persistentDataPath/Replays`. The recorded game identity combines the application version with
-the Lua hash. `EM.UI.ReplayListInterface` compares that identity with the current installation and disables
-the selection button for a mismatch. `ReplayClientSockets` separately checks the replay format version.
+The [developers' replay warning](https://discord.com/channels/781554164307591219/1543565008846323782/1545256895680352337):
 
-This adds a modding detail to the developer's version warning: changing Lua can make a replay unavailable
-through the replay list even when the Steam build has not changed. The inspected replay header does not
-provide a complete manifest of templates, maps, assets, or installed mods. A matching identity is therefore
-not proof that every relevant input matches. In particular, templates remain outside the Lua hash.
+> _a replay can only be played back on the exact version of the engine that recorded it._
 
-Keep a replay's build identity and test-file hashes with any bug report. Actual playback and the visible
-mismatch behavior still need the [controlled runtime checks](./runtime-tests).
+`EM.Network.Replay.ReplayFile` writes `.sanreplay` files beneath `Application.persistentDataPath/Replays`.
+The recorded game identity combines the application version with the **Lua hash**.
+`EM.UI.ReplayListInterface` compares this identity with the running game and disables the selection button
+for a mismatch. `ReplayClientSockets` separately checks the replay format version.
+
+Changing Lua can therefore make a replay unavailable through the replay list even on the same Steam build.
+The hash covers `.lua` paths and contents; `.santp` templates remain outside it. See the
+[Lua hash implementation](./lua/overview#multiplayer-lua-hash-gate).
 
 ## Settings have a JSON persistence path
 
-**Static finding.** `EM.GameUtils.UserSettings` loads and saves `userSettings.json` beneath
-`Application.persistentDataPath`. Its data includes `uiScale` and `iconScale`, constrained to 0.5–1.75
-when loaded. The interface applies this settings data through the settings UI.
+`EM.GameUtils.UserSettings` loads and saves `userSettings.json` beneath `Application.persistentDataPath`.
+Its `uiScale` and `iconScale` values are clamped to **0.5–1.75** when loaded. The settings UI applies these values.
 
-The older registry-based UI-scale advice should not be treated as the current procedure. Use the settings
-menu and verify persistence after a restart. This finding does not mean all PlayerPrefs keys disappeared;
-the [connection and map keys](./playerprefs) are still present in managed code. Migration from an older
-UI-scale value has not been traced.
+Use the settings menu to adjust UI scale. The [connection and map preferences](./playerprefs) continue to
+use PlayerPrefs.
 
-## Command and disconnection paths to review
+## Command and disconnection handling
 
-**Static finding.** The current `host/commands.lua` handles an engine disconnection command by updating the
-lobby player list and sending a session log message. Other incoming commands go through the shared command
-registry. The managed command queue also has an instance-parenting command path.
+`host/commands.lua` handles an engine disconnection command by updating the lobby player list and sending
+a session log message. Other incoming commands use the shared command registry. The managed command queue
+also includes an instance-parenting command path.
 
-These paths help locate the features named in the announcement. They do not establish which old callbacks
-were replaced, whether a mod's command format still works, or whether parenting supplies a complete transport
-system. Recheck command-related hooks before porting them; no performance comparison was run here.
-
-## Deprecations, breakage, and open checks
-
-No complete API comparison or mod execution test was performed, so this page declares no API removals,
-official deprecations, or tested mod breakages. The absent artist-log setting is a configuration difference,
-not an inferred deprecation notice. An exact old-build assembly and annotation baseline would support a more
-specific compatibility comparison.
-
-The announcement's exact LuaJIT revision, performance gains, desync memory cap, and detailed balance changes
-have not been independently measured here. The new findings are checked in code; follow the
-[runtime test handoff](./runtime-tests) to turn them into observed behavior.
+These are the source locations for the command and disconnection features described in the official changelog.
+See [managed code](./managed) for the assembly and [Lua source locations](./lua/overview#source-locations).

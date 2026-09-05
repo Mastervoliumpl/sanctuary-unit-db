@@ -274,17 +274,22 @@ test('modding changelog attributes release notes and falls back in the older sna
   await expect(
     page.getByRole('heading', { name: 'Release notes and modding changes', exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('link', { name: "FoneE's Sanctuary update thread" })).toHaveAttribute(
+  await expect(
+    page.getByRole('link', { name: "official changelog on the developers' Discord" }),
+  ).toHaveAttribute(
     'href',
     'https://discord.com/channels/781554164307591219/1543565008846323782/1545256895680352337',
   );
-  await expect(page.locator('.docs-document')).toContainText('has not been independently mapped');
+  await expect(page.locator('.docs-document blockquote em')).toContainText(
+    'a replay can only be played back on the exact version of the engine that recorded it.',
+  );
+  await expect(page.locator('.docs-nav').getByRole('link', { name: /Runtime checks/i })).toHaveCount(0);
+  expect((await page.request.get('/modding/0.0.1.14-25114838/runtime-tests')).status()).toBe(404);
   await page
     .locator('.docs-nav')
-    .getByRole('link', { name: /Runtime checks/ })
+    .getByRole('link', { name: /Build information/ })
     .click();
-  await expect(page).toHaveURL(/\/runtime-tests$/);
-  await expect(page.locator('.docs-document')).toContainText('not completed tests');
+  await expect(page.locator('.docs-definition-grid')).toContainText('Version 118');
   await page
     .locator('.docs-nav')
     .getByRole('link', { name: /Modding changelog/ })

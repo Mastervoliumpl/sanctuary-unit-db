@@ -13,15 +13,32 @@ navTitle: Maps and editor
 
 ## Locations and format
 
-<Paths>
-  <code>engine\Sanctuary_Data\Maps</code>
-  <code>engine\Sanctuary-Map-Generation\README.txt</code>
-  <code>engine\Sanctuary-Map-Generation\ExtraneousMapGen.exe</code>
-</Paths>
+<Settings fileLayout>
+  <div>
+    <dt>
+      <code>engine\Sanctuary_Data\Maps</code>
+    </dt>
+    <dd>Installed maps</dd>
+  </div>
+  <div>
+    <dt>
+      <code>engine\Sanctuary-Map-Generation\README.txt</code>
+    </dt>
+    <dd>Map-generator documentation</dd>
+  </div>
+  <div>
+    <dt>
+      <code>engine\Sanctuary-Map-Generation\ExtraneousMapGen.exe</code>
+    </dt>
+    <dd>Map generator</dd>
+  </div>
+</Settings>
 
-The inspected maps begin with readable JSON. A checked named-map header has `fileVersion` 3 and includes
-`mapVersion`, `name`, `width`, `length`, and `height`. This is a sample header, not a complete schema
-or a claim that all maps have identical metadata.
+The [confirmed map inventory](https://github.com/Remmyboy/sanctuary-unit-db/pull/1#discussion_r3931958747)
+contains **150** `.sanmap` files: **79 named** and **71 generated** maps.
+
+Map files begin with readable JSON. The inspected named-map header uses `fileVersion` **3** and includes
+`mapVersion`, `name`, `width`, `length`, and `height`.
 
 ## Generator options
 

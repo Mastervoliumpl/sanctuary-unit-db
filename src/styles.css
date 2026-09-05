@@ -2524,6 +2524,13 @@ html.modding-route {
   font-size: 15px;
   line-height: 1.65;
 }
+.docs-article blockquote {
+  max-width: 720px;
+  margin: 16px 0;
+  padding: 10px 16px;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-raised);
+}
 .docs-article code {
   color: var(--text);
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;

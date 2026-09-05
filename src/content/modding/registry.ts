@@ -10,6 +10,7 @@ export const snapshotSchema = z
   .object({
     id: z.string().regex(snapshotIdPattern),
     gameVersion: z.string().trim().min(1),
+    announcementVersion: z.string().trim().min(1).optional(),
     steamApp: z.number().int().positive(),
     steamBuild: z.number().int().positive(),
     unityVersion: z.string().trim().min(1),

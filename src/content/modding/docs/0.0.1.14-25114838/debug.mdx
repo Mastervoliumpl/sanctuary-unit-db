@@ -13,9 +13,14 @@ navTitle: Debug settings
 
 ## Configuration
 
-<Paths>
-  <code>engine\Sanctuary_Data\Resources\Editor\Debug\Build.json</code>
-</Paths>
+<Settings fileLayout>
+  <div>
+    <dt>
+      <code>engine\Sanctuary_Data\Resources\Editor\Debug\Build.json</code>
+    </dt>
+    <dd>Debug and logging configuration</dd>
+  </div>
+</Settings>
 
 The inspected file enables sandboxing, pathfinding, and the desync asserter. File watching and quick launch are
 disabled. Copy configuration files before editing; a Steam update can replace them.
@@ -45,7 +50,7 @@ Copy useful output before restarting.
 
 Host/client Lua and interface channels have no separate file writer in that configuration. They are routed
 through Unity logging and the in-game host/client log windows. The inspected configuration assigns no channel
-writer to `LogsForArtists.txt`; an old file with that name is not evidence of an active destination.
+writer to `LogsForArtists.txt`.
 
 These destinations were traced in code. Producing a diagnostic in each channel remains a runtime test.
 
@@ -55,5 +60,4 @@ The inspected `CommandLineUtils` parser recognizes `-debugSettings=`, `-scenario
 `-autoplay=`, `-showFogOfWar=`, and `-showDebugUi=`. Boolean arguments expect true or false.
 A custom debug filename is resolved beneath the game's Debug resource directory.
 
-Other launch paths and the visible effects of those arguments were not exercised in this inspection.
-Do not assume every flag documented for an older build still works.
+The [previous snapshot](../0.0.1.11-25019767/debug) also documents `-server` and `-name` launch flags.
