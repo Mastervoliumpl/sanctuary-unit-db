@@ -67,6 +67,10 @@ not proof that every relevant input matches. In particular, templates remain out
 Keep a replay's build identity and test-file hashes with any bug report. Actual playback and the visible
 mismatch behavior still need the [controlled runtime checks](./runtime-tests).
 
+The installed third-party ReplayManager adds a replay panel with seeking and rewinding and patches playback
+paths. Those additions are excluded from this base-game finding. It was derived from the on-disk
+`Trebuchet.dll`; observing the same installation with plugins loaded would require separate attribution.
+
 ## Settings have a JSON persistence path
 
 **Static finding.** `EM.GameUtils.UserSettings` loads and saves `userSettings.json` beneath
@@ -89,6 +93,11 @@ were replaced, whether a mod's command format still works, or whether parenting 
 system. Recheck command-related hooks before porting them; no performance comparison was run here.
 
 ## Deprecations, breakage, and open checks
+
+The [package audit](./build-information#third-party-packages-excluded-from-game-findings) identifies the
+installed ModManager, ReplayManager, and LadderReporter additions. Their Mods interface, memory overlays,
+enhanced replay controls, and ladder integration are third-party features, not additions in the official
+game changelog.
 
 No complete API comparison or mod execution test was performed, so this page declares no API removals,
 official deprecations, or tested mod breakages. The absent artist-log setting is a configuration difference,

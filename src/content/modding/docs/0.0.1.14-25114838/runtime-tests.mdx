@@ -17,12 +17,41 @@ Confirm the installed Steam build before each session; an automatic update chang
 Record the displayed game version, map, test time, and whether loaders or modified files are present. A
 modified installation is a valid test environment when labelled; it does not establish stock behavior.
 
+## Separate the test packages from the baseline
+
+The inspected installation includes LadderReporter 0.2.3, ModManager 0.2.0, and ReplayManager 0.2.0.
+Their [package provenance](./build-information#third-party-packages-excluded-from-game-findings) is separate
+from the game. The Mods/F8 page, memory overlays, enhanced replay panel, seeking/rewinding, and ladder
+integration must not be reported as base-game features.
+
+Run the baseline checks in a fresh process with the third-party loader disabled. For this installation's
+Doorstop configuration:
+
+1. Close the game fully and save an exact backup of `engine\doorstop_config.ini`.
+2. In its `[General]` section, change `enabled = true` to `enabled = false` and launch a new game process.
+   Record the setting used and whether the third-party interfaces still appear. Hiding a panel or toggling
+   one plugin in the Mods UI does not establish that the loader and other patches are absent.
+3. Run the baseline checks and label the results **loader disabled**. This is a controlled comparison,
+   not certification of a clean Steam installation.
+4. Close the game and restore the saved configuration exactly. If comparing with plugins enabled, launch
+   another fresh process and record those observations separately, including which mods/overlays are enabled.
+
+ModManager can change cached Lua/template content in memory without altering disk files. ReplayManager
+patches playback, and LadderReporter can affect matchmaking. If you cannot establish a loader-disabled run,
+report the environment as modified and leave the base-game conclusion open. None of these settings has been
+changed as part of this documentation inspection.
+
+## Preserve evidence
+
 Preserve logs and any replay before the next launch, because some logs are opened with truncation enabled.
 On Windows, the developer announcement places persistent data beneath
 `%USERPROFILE%\AppData\LocalLow\Enhearten Media PTY\Sanctuary`. Use the actual folder created by your game.
 Share relevant messages and values, with personal paths, player names, and connection details redacted.
 
 ## Test 1: Record and replay an unchanged session
+
+Use the loader-disabled process for this baseline. The ReplayManager/F7 panel and its extra controls are
+third-party behavior; record them only in a separately labelled mod-enabled comparison.
 
 1. Start a short offline match on a known map, perform a few recognizable orders, and end it normally.
 2. Check whether a new `.sanreplay` appeared in the persistent-data `Replays` directory. Record its filename,
@@ -50,8 +79,9 @@ the game before restoring your saved copy.
 
 ## Optional: Replay list after a Lua-only change
 
-Use a disposable or backed-up test installation and the successful baseline recording from Test 1. This
-check changes the Lua hash, so keep the session offline.
+Use a disposable or backed-up test installation, the loader-disabled process, and the successful baseline
+recording from Test 1. This check changes the Lua hash, so keep the session offline. A ModManager overlay is
+not a substitute for this disk-file comparison.
 
 1. Close the game. Back up `engine\LJ\lua\host\commands.lua` outside the Lua tree and record its SHA-256.
 2. Append only a Lua comment on a new line, preserving the file's encoding. Do not change executable code.
@@ -66,7 +96,7 @@ Lua hash does not establish template or asset compatibility.
 
 ## Optional: Controlled client disconnect
 
-With a second consenting tester, use an unmodified private session on matching builds. Have the second
+With a second consenting tester, use a loader-disabled private session on matching builds. Have the second
 client leave normally, then record the host's session message, lobby/player-list update, and whether the
 remaining session continues. Compare with the same setup before leaving.
 
@@ -83,6 +113,8 @@ Steam build / displayed game version:
 Date and local time:
 Map / session mode:
 Loaders or modified files present:
+Doorstop enabled/disabled and fresh-process check:
+Enabled plugins and Lua/template overlays, if testing a modified session:
 Baseline result:
 Exact steps performed:
 Observed result and exact message:
